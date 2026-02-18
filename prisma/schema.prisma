@@ -1,0 +1,85 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+
+  output   = "../server/generated/client" 
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  username     String        @unique
+  bio          String?       @db.VarChar(160) // New: For the profile card
+  avatarUrl    String?       // New: For custom/DiceBear seeds
+  wallet       Wallet?
+  trades       Trade[]
+  participants Participant[] // New: Links user to tournament rankings
+  createdAt    DateTime      @default(now())
+}
+model Wallet {
+  id             String   @id @default(uuid())
+  balance        Decimal  @default(0.00) @db.Decimal(18, 8)
+  metamaskAddress String?
+  user           User     @relation(fields: [userId], references: [id])
+  userId         String   @unique
+}
+
+model Trade {
+  id            String   @id @default(uuid())
+  symbol        String
+  side          String
+  entryPrice    Decimal  @db.Decimal(18, 8)
+  exitPrice     Decimal? @db.Decimal(18, 8)
+  pnlPercentage Decimal? @db.Decimal(10, 4)
+  status        String   @default("OPEN")
+  
+  // Link to User
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  
+  // NEW: Link to Tournament
+  // This allows us to track which moves contribute to which ranking
+  tournamentId  String?  
+  
+  createdAt     DateTime @default(now())
+}
+
+model Tournament {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime
+  prizePool     Float         @default(0)
+  status        String        @default("UPCOMING") // UPCOMING, ACTIVE, COMPLETED
+  participants  Participant[]
+  createdAt     DateTime      @default(now())
+}
+
+model Participant {
+  id              String     @id @default(cuid())
+  userId          String
+  tournamentId    String
+  
+  // The relation field (tournament) uses the scalar field (tournamentId)
+  tournament      Tournament @relation(fields: [tournamentId], references: [id])
+
+  user            User       @relation(fields: [userId], references: [id])
+  
+  startingBalance Float      @default(10000)
+  currentBalance  Float      @default(10000)
+  pnlPercentage   Float      @default(0)
+  rank            Int?
+  
+  joinedAt        DateTime   @default(now())
+
+  @@unique([userId, tournamentId])
+}
+
+
+

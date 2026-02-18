@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "tailwindcss";
+
+@theme {
+  /* ApexTraders Custom Tokens */
+  --color-brand-dark: #0f172a;
+  --color-brand-primary: #fbbf24;
+  --color-brand-secondary: #2dd4bf;
+  --color-brand-accent: #6366f1;
+
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Global Reset using v4 tokens */
+@layer base {
+  body {
+    background-color: var(--color-brand-dark);
+    color: #f8fafc;
+    font-family: var(--font-sans);
+    margin: 0;
+  }
+}
