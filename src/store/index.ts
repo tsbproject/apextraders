@@ -1,10 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import priceReducer from './priceSlice';
 import tradeReducer from './tradeSlice';
+import authReducer from './authSlice';
 import { socketMiddleware } from './middleware/socketMiddleware';
 
 export const store = configureStore({
   reducer: {
+    // Manages user authentication, JWT session, and role permissions
+    auth: authReducer,
     // Manages real-time BTC price and connection status
     price: priceReducer,
     // Manages active and closed trading positions

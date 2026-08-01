@@ -1,76 +1,122 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { api } from '../services/api';
+import { extractErrorMessage } from './authSlice';
 
-// --- Types ---
+// --- Interfaces & Types ---
+export type TradeSide = 'BUY' | 'SELL';
+export type TradeStatus = 'OPEN' | 'CLOSED';
+
 export interface Trade {
   id: string;
+  userId?: string;
   symbol: string;
-  side: 'BUY' | 'SELL';
+  side: TradeSide;
   entryPrice: number;
-  amount: number;
-  status: 'OPEN' | 'CLOSED';
+  exitPrice?: number;
   pnlPercentage?: number;
+  status: TradeStatus;
+  createdAt?: string;
+  closedAt?: string;
+}
+
+export interface OpenTradePayload {
+  symbol: string;
+  side: TradeSide;
+  entryPrice: number;
+  tournamentId?: string;
+}
+
+export interface CloseTradePayload {
+  tradeId: string;
+  exitPrice: number;
 }
 
 interface TradeState {
   positions: Trade[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: TradeState = {
   positions: [],
   loading: false,
+  error: null,
 };
 
-// --- Thunks (Phase 2: Backend Sync) ---
-export const openTrade = createAsyncThunk(
-  'trades/open',
-  async (tradeData: { userId: string; symbol: string; side: string; entryPrice: number }) => {
-    const response = await fetch('http://localhost:3001/api/trades/open', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(tradeData),
-    });
-    return (await response.json()) as Trade;
-  }
-);
+// --- Exported Async Thunks ---
 
-export const closeTrade = createAsyncThunk(
-  'trades/close',
-  async (data: { tradeId: string; exitPrice: number }) => {
-    const response = await fetch('http://localhost:3001/api/trades/close', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return (await response.json()) as Trade;
+export const openTrade = createAsyncThunk<
+  Trade,
+  OpenTradePayload,
+  { rejectValue: string }
+>('trades/open', async (tradeData, { rejectWithValue }) => {
+  try {
+    const response = await api.post<Trade>('/trades/open', tradeData);
+    return response.data;
+  } catch (error: unknown) {
+    return rejectWithValue(extractErrorMessage(error, 'Failed to open trade position.'));
   }
-);
+});
 
-// --- Slice ---
+export const closeTrade = createAsyncThunk<
+  Trade,
+  CloseTradePayload,
+  { rejectValue: string }
+>('trades/close', async (data, { rejectWithValue }) => {
+  try {
+    const response = await api.post<Trade>('/trades/close', data);
+    return response.data;
+  } catch (error: unknown) {
+    return rejectWithValue(extractErrorMessage(error, 'Failed to close position.'));
+  }
+});
+
+// --- Slice Definition ---
+
 const tradeSlice = createSlice({
   name: 'trades',
   initialState,
   reducers: {
-    // Manual state sync if needed
     setPositions: (state, action: PayloadAction<Trade[]>) => {
       state.positions = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder
-      /* Handle Opening */
-      .addCase(openTrade.fulfilled, (state, action) => {
-        state.positions.push(action.payload);
+      /* Open Trade */
+      .addCase(openTrade.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
-      /* Handle Closing (The "Merge" Logic) */
-      .addCase(closeTrade.fulfilled, (state, action) => {
-        // Remove the position from the active list as it is now CLOSED
-        state.positions = state.positions.filter(
-          (t) => t.id !== action.meta.arg.tradeId
-        );
+      .addCase(openTrade.fulfilled, (state, action: PayloadAction<Trade>) => {
+        state.loading = false;
+        state.positions.unshift(action.payload);
+      })
+      .addCase(openTrade.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? 'Error opening position';
+      })
+
+      /* Close Trade */
+      .addCase(closeTrade.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(
+        closeTrade.fulfilled,
+        (state, action: PayloadAction<Trade, string, { arg: CloseTradePayload }>) => {
+          state.loading = false;
+          state.positions = state.positions.filter(
+            (t) => t.id !== action.meta.arg.tradeId
+          );
+        }
+      )
+      .addCase(closeTrade.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? 'Error closing position';
       });
   },
 });
 
+// Export Reducer Actions & Default Reducer
 export const { setPositions } = tradeSlice.actions;
 export default tradeSlice.reducer;

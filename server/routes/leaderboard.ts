@@ -1,51 +1,83 @@
-import express from 'express';
-// Change from: import { prisma } from '../lib/prisma';
-// To:
+import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
-const router = express.Router();
+const router = Router();
 
+// ==========================================
+// Explicit Interfaces (Strict Mode)
+// ==========================================
 
-router.get('/', async (_req, res) => {
-  try {
-    // 1. Fetch participants sorted by PnL (Phase 3)
-    const leaderboard = await prisma.participant.findMany({
-      orderBy: {
-        pnlPercentage: 'desc'
-      },
-      take: 10, // Top 10 traders for performance
-    });
+export interface LeaderboardDTO {
+  id: string;
+  username: string;
+  totalPnL: number;
+  tradeCount: number;
+  avatar: string;
+  rankTier: string;
+}
 
-    // 2. Transform data to match your Ranker interface
-    const formattedData = leaderboard.map((p) => {
-      // HANDLE DECIMAL CONVERSION: Ensure pnlPercentage is a primitive number
-      // This prevents the "red pop" error when serializing to JSON or comparing values.
-      const pnlValue: number = typeof p.pnlPercentage === 'object' && p.pnlPercentage !== null && 'toNumber' in p.pnlPercentage
-        ? (p.pnlPercentage as unknown as { toNumber(): number }).toNumber()
-        : (p.pnlPercentage as unknown as number) ?? 0;
+export interface ApiErrorResponse {
+  message: string;
+}
 
-      // DYNAMIC TIER LOGIC: Aligned with your specific thresholds
-      let tier = "BRONZE";
-      if (pnlValue >= 50) tier = "DIAMOND";
-      else if (pnlValue >= 20) tier = "GOLD";
-      else if (pnlValue >= 5) tier = "SILVER";
-
-      return {
-        id: p.id,
-        username: `Trader_${p.userId.slice(-4)}`, // Mock username until Phase 4 Auth
-        totalPnL: pnlValue,
-        tradeCount: 5, // Placeholder until trade aggregation is linked
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.userId}`,
-        rankTier: tier // Use the calculated tier
-      };
-    });
-
-    res.json(formattedData);
-  } catch (err) {
-    // Log for internal debugging (No 'error' unused warning)
-    console.error("Leaderboard Fetch Error:", err);
-    res.status(500).json({ message: "Failed to fetch leaderboard" });
+// Helper to safely convert Prisma Decimal/null values to standard numbers
+const parseNumber = (val: unknown): number => {
+  if (typeof val === 'number') return val;
+  if (val && typeof val === 'object' && 'toNumber' in val && typeof (val as { toNumber: () => number }).toNumber === 'function') {
+    return (val as { toNumber: () => number }).toNumber();
   }
-});
+  return 0;
+};
+
+// ==========================================
+// Leaderboard Endpoint
+// ==========================================
+
+/**
+ * GET /api/leaderboard
+ * Fetch top 10 traders ordered by highest PnL percentage.
+ */
+router.get(
+  '/',
+  async (
+    _req: Request,
+    res: Response<LeaderboardDTO[] | ApiErrorResponse>
+  ): Promise<void> => {
+    try {
+      // 1. Fetch participants sorted by PnL
+      const leaderboard = await prisma.participant.findMany({
+        orderBy: {
+          pnlPercentage: 'desc',
+        },
+        take: 10,
+      });
+
+      // 2. Transform data into type-safe DTOs
+      const formattedData: LeaderboardDTO[] = leaderboard.map((p) => {
+        const pnlValue = parseNumber(p.pnlPercentage);
+
+        // Dynamic Tier Threshold Logic
+        let tier = 'BRONZE';
+        if (pnlValue >= 50) tier = 'DIAMOND';
+        else if (pnlValue >= 20) tier = 'GOLD';
+        else if (pnlValue >= 5) tier = 'SILVER';
+
+        return {
+          id: p.id,
+          username: `Trader_${p.userId.slice(-4)}`,
+          totalPnL: pnlValue,
+          tradeCount: 5, // Placeholder until trade aggregation is linked
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.userId}`,
+          rankTier: tier,
+        };
+      });
+
+      res.status(200).json(formattedData);
+    } catch (err: unknown) {
+      console.error('Leaderboard Fetch Error:', err);
+      res.status(500).json({ message: 'Failed to fetch leaderboard' });
+    }
+  }
+);
 
 export default router;

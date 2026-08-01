@@ -9,24 +9,48 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RankTier {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+  ELITE
+}
+
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  username     String        @unique
-  bio          String?       @db.VarChar(160) // New: For the profile card
-  avatarUrl    String? // New: For custom/DiceBear seeds
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String // Required for secure JWT authentication
+  role         Role     @default(USER)
+  rankTier     RankTier @default(BRONZE)
+  bio          String?  @db.VarChar(160)
+  avatarUrl    String?
+
   wallet       Wallet?
   trades       Trade[]
-  participants Participant[] // New: Links user to tournament rankings
-  createdAt    DateTime      @default(now())
+  participants Participant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
 
 model Wallet {
   id              String  @id @default(uuid())
   balance         Decimal @default(0.00) @db.Decimal(18, 8)
   metamaskAddress String?
-  user            User    @relation(fields: [userId], references: [id])
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          String  @unique
+
+  @@map("wallets")
 }
 
 model Trade {
@@ -38,15 +62,15 @@ model Trade {
   pnlPercentage Decimal? @db.Decimal(10, 4)
   status        String   @default("OPEN")
 
-  // Link to User
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  // NEW: Link to Tournament
-  // This allows us to track which moves contribute to which ranking
   tournamentId String?
 
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("trades")
 }
 
 model Tournament {
@@ -59,6 +83,8 @@ model Tournament {
   status       String        @default("UPCOMING") // UPCOMING, ACTIVE, COMPLETED
   participants Participant[]
   createdAt    DateTime      @default(now())
+
+  @@map("tournaments")
 }
 
 model Participant {
@@ -66,10 +92,8 @@ model Participant {
   userId       String
   tournamentId String
 
-  // The relation field (tournament) uses the scalar field (tournamentId)
-  tournament Tournament @relation(fields: [tournamentId], references: [id])
-
-  user User @relation(fields: [userId], references: [id])
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   startingBalance Float @default(10000)
   currentBalance  Float @default(10000)
@@ -79,4 +103,5 @@ model Participant {
   joinedAt DateTime @default(now())
 
   @@unique([userId, tournamentId])
+  @@map("participants")
 }

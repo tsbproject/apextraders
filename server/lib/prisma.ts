@@ -1,4 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+// Replace: import { PrismaClient } from '@prisma/client';
+// With the generated client output path:
+import { PrismaClient, Role } from '../generated/client'; 
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import * as dotenv from 'dotenv';
@@ -6,13 +8,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const prismaClientSingleton = () => {
-  // 1. Create the connection pool
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-  
-  // 2. Create the adapter
   const adapter = new PrismaPg(pool);
-  
-  // 3. Pass the adapter to the client (Required in Prisma 7)
   return new PrismaClient({ adapter });
 };
 
@@ -22,8 +19,7 @@ declare global {
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-// Export as both default and named export for maximum compatibility
-export { prisma };
+export { prisma, Role };
 export default prisma;
 
 if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma;

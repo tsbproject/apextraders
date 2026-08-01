@@ -1,359 +1,177 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, TrendingUp, Users, Target, Activity, Loader2 } from 'lucide-react';
-import { NotifySuccess, NotifyError } from '../utils/notifications';
-import TraderModal, { Trader } from '../_components/TraderModal';
+import { api } from '../services/api';
+import { extractErrorMessage } from '../store/authSlice';
+import { useNotification } from '../context/NotificationContext';
 
-export interface Ranker {
-  id: string;
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
   username: string;
-  totalPnL: number;
-  tradeCount: number;
-  avatar: string;
   rankTier: string;
+  startingBalance: number;
+  currentBalance: number;
+  totalPnl: number;
+  roiPercentage: number;
+  totalTrades: number;
+  winRate: number;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+export interface LeaderboardResponse {
+  tournamentId: string;
+  tournamentName: string;
+  leaderboard: LeaderboardEntry[];
+}
 
-const Leaderboard: React.FC = () => {
-  const [rankers, setRankers] = useState<Ranker[]>([]);
+export const Leaderboard: React.FC = () => {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [tournamentName, setTournamentName] = useState<string>('Apex Arena');
   const [loading, setLoading] = useState<boolean>(true);
-  const [isJoining, setIsJoining] = useState<boolean>(false);
-
-  // State for Trader Inspection Modal
-  const [selectedTrader, setSelectedTrader] = useState<Ranker | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const { notifyError } = useNotification();
 
   useEffect(() => {
-    let isMounted = true;
-
-    fetch(`${API_BASE_URL}/leaderboard`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch leaderboard');
-        return res.json();
-      })
-      .then((data: Ranker[]) => {
-        if (isMounted) {
-          setRankers(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Leaderboard fetch error:', err);
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleTraderClick = (trader: Ranker) => {
-    setSelectedTrader(trader);
-    setIsModalOpen(true);
-  };
-
-  const handleJoinTournament = async () => {
-    setIsJoining(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/tournaments/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'user_1',
-          tournamentId: 'weekly-apex-challenge',
-        }),
-      });
-
-      if (response.ok) {
-        NotifySuccess('Entry Confirmed: You are now a Participant!');
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        NotifyError(errorData.message || 'Conflict: Already enrolled in this event.');
+    const fetchLeaderboard = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get<LeaderboardResponse>('/leaderboard');
+        setLeaderboard(response.data.leaderboard);
+        setTournamentName(response.data.tournamentName);
+      } catch (error: unknown) {
+        const msg = extractErrorMessage(error, 'Failed to load leaderboard rankings.');
+        notifyError(msg);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      NotifyError('Connection refused by Tournament Engine.');
-    } finally {
-      setIsJoining(false);
-    }
-  };
+    };
+
+    fetchLeaderboard();
+  }, [notifyError]);
 
   if (loading) {
     return (
-      <div className="flex h-80 flex-col items-center justify-center space-y-4 font-mono text-slate-500 select-none">
-        <Activity className="animate-spin text-indigo-400" size={32} />
-        <p className="animate-pulse text-xs font-black uppercase tracking-widest">
-          Syncing Global Rankings...
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
 
+  const topThree = leaderboard.slice(0, 3);
+  const remainingTraders = leaderboard.slice(3);
+
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 select-none">
-      
-      {/* ========================================================= */}
-      {/* 1. INTERACTIVE TOURNAMENT HERO HEADER                     */}
-      {/* ========================================================= */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-indigo-500/20 bg-slate-900/50 p-6 sm:p-8 backdrop-blur-xl">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="rounded-xl bg-indigo-500/10 p-2 sm:p-2.5">
-                <Trophy className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-400" />
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-white">
-                Global Leaderboard
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm font-medium text-slate-400 pl-1">
-              Top traders by PnL performance across the Apex ecosystem.
-            </p>
+    <div className="space-y-8">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 backdrop-blur-md">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Live Standings
+            </span>
+            <span className="text-xs text-slate-400">Updates in real-time</span>
           </div>
-
-          <button
-            type="button"
-            onClick={handleJoinTournament}
-            disabled={isJoining}
-            className="w-full md:w-auto flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-indigo-600 px-6 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
-          >
-            {isJoining ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                <span>Verifying...</span>
-              </>
-            ) : (
-              <span>Join Active Tournament</span>
-            )}
-          </button>
+          <h1 className="text-3xl font-extrabold text-white mt-2">{tournamentName}</h1>
         </div>
-        <div className="absolute top-0 right-0 -mt-32 -mr-32 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none" />
       </div>
 
-      {/* ========================================================= */}
-      {/* 2. PODIUM SECTION (TOP 3 RANKERS)                         */}
-      {/* ========================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        {rankers.slice(0, 3).map((user, index) => {
-          const isTopRank = index === 0;
-          const isPositivePnL = user.totalPnL >= 0;
+      {/* Podium Display for Top 3 */}
+      {topThree.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          {/* Rank 2 - Silver */}
+          {topThree[1] && (
+            <PodiumCard entry={topThree[1]} badgeColor="bg-slate-300 text-slate-900" rankBadge="🥈 2nd" />
+          )}
 
-          return (
-            <motion.div
-              key={user.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => handleTraderClick(user)}
-              className={`group relative cursor-pointer overflow-hidden rounded-2xl sm:rounded-3xl border p-5 sm:p-6 backdrop-blur-xl transition-all hover:border-indigo-500/40 ${
-                isTopRank
-                  ? 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 via-slate-900/60 to-slate-950 shadow-[0_0_40px_-15px_rgba(99,102,241,0.4)]'
-                  : 'border-white/5 bg-slate-900/40 hover:bg-slate-800/60'
-              }`}
-            >
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="relative shrink-0">
-                  <img
-                    src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl border border-white/10 bg-slate-800 object-cover transition-transform group-hover:scale-105"
-                    alt={user.username}
-                  />
-                  <div className="absolute -top-2 -left-2 flex h-7 w-7 sm:h-8 sm:w-8 -rotate-12 items-center justify-center rounded-full border border-white/10 bg-slate-950 shadow-lg">
-                    {index === 0 ? (
-                      <Trophy size={16} className="text-amber-400" />
-                    ) : (
-                      <Medal
-                        size={16}
-                        className={index === 1 ? 'text-slate-300' : 'text-amber-600'}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-bold text-base sm:text-lg text-white transition-colors group-hover:text-indigo-400">
-                    {user.username}
-                  </h3>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <Target size={12} className="text-indigo-400 shrink-0" />
-                    <span className="text-[10px] font-black uppercase tracking-tighter text-indigo-400">
-                      {user.rankTier}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 sm:mt-6 flex items-end justify-between">
-                <div>
-                  <div className="mb-1 flex items-center gap-1 text-slate-500">
-                    <TrendingUp size={12} />
-                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
-                      Net Return
-                    </p>
-                  </div>
-                  <p
-                    className={`font-mono text-xl sm:text-2xl font-black ${
-                      isPositivePnL ? 'text-emerald-400' : 'text-rose-400'
-                    }`}
-                  >
-                    {isPositivePnL ? '+' : ''}
-                    {user.totalPnL.toFixed(2)}%
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <div className="mb-1 flex items-center justify-end gap-1 text-slate-500">
-                    <Users size={12} />
-                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
-                      Executions
-                    </p>
-                  </div>
-                  <p className="font-mono text-sm sm:text-base font-black text-white">
-                    {user.tradeCount}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* ========================================================= */}
-      {/* 3. MAIN DESKTOP TABLE & MOBILE CARDS (RANKS 4+)            */}
-      {/* ========================================================= */}
-      
-      {/* Desktop Table (Visible md:block) */}
-      <div className="hidden md:block overflow-hidden rounded-3xl border border-white/5 bg-slate-900/30">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-            <tr>
-              <th className="px-6 py-5">Rank</th>
-              <th className="px-6 py-5">Trader</th>
-              <th className="px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Target size={14} /> Tier
-                </div>
-              </th>
-              <th className="px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Users size={14} /> Volume
-                </div>
-              </th>
-              <th className="px-6 py-5 text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <TrendingUp size={14} /> Profit
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            <AnimatePresence>
-              {rankers.slice(3).map((user, index) => {
-                const isPositivePnL = user.totalPnL >= 0;
-
-                return (
-                  <motion.tr
-                    key={user.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={() => handleTraderClick(user)}
-                    className="group cursor-pointer transition-all duration-200 hover:bg-indigo-500/5"
-                  >
-                    <td className="px-6 py-5 font-mono text-xs text-slate-500 transition-colors group-hover:text-indigo-400">
-                      #{String(index + 4).padStart(2, '0')}
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                          className="h-9 w-9 rounded-xl border border-white/5 bg-slate-800 object-cover transition-transform group-hover:scale-110"
-                          alt={user.username}
-                        />
-                        <span className="font-bold text-sm text-slate-200 transition-colors group-hover:text-white">
-                          {user.username}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="rounded-md border border-white/5 bg-white/5 px-2 py-1 text-[10px] font-black uppercase text-slate-400">
-                        {user.rankTier}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 font-mono text-xs font-bold text-slate-400">
-                      {user.tradeCount} trades
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <span
-                        className={`font-mono text-xs font-black ${
-                          isPositivePnL ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                      >
-                        {isPositivePnL ? '+' : ''}
-                        {user.totalPnL.toFixed(2)}%
-                      </span>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile Card List (Visible md:hidden) */}
-      <div className="md:hidden space-y-3">
-        {rankers.slice(3).map((user, index) => {
-          const isPositivePnL = user.totalPnL >= 0;
-
-          return (
-            <div
-              key={user.id}
-              onClick={() => handleTraderClick(user)}
-              className="flex items-center justify-between rounded-xl border border-white/5 bg-slate-900/40 p-3.5 transition-colors active:bg-slate-800/60"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="font-mono text-xs font-bold text-slate-500 w-7">
-                  #{String(index + 4).padStart(2, '0')}
-                </span>
-                <img
-                  src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                  className="h-8 w-8 rounded-lg bg-slate-800 object-cover"
-                  alt={user.username}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-white">
-                    {user.username}
-                  </p>
-                  <p className="text-[9px] font-black uppercase text-slate-500">
-                    {user.rankTier} • {user.tradeCount} trades
-                  </p>
-                </div>
-              </div>
-
-              <span
-                className={`font-mono text-xs font-black ${
-                  isPositivePnL ? 'text-emerald-400' : 'text-rose-400'
-                }`}
-              >
-                {isPositivePnL ? '+' : ''}
-                {user.totalPnL.toFixed(2)}%
-              </span>
+          {/* Rank 1 - Gold (Centered & Elevated) */}
+          {topThree[0] && (
+            <div className="md:-translate-y-4">
+              <PodiumCard entry={topThree[0]} badgeColor="bg-amber-400 text-amber-950" rankBadge="👑 1st" isFirst />
             </div>
-          );
-        })}
+          )}
+
+          {/* Rank 3 - Bronze */}
+          {topThree[2] && (
+            <PodiumCard entry={topThree[2]} badgeColor="bg-amber-700 text-amber-100" rankBadge="🥉 3rd" />
+          )}
+        </div>
+      )}
+
+      {/* Main Leaderboard Table */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-300">
+            <thead className="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="px-6 py-4">Rank</th>
+                <th className="px-6 py-4">Trader</th>
+                <th className="px-6 py-4">Tier</th>
+                <th className="px-6 py-4">Balance</th>
+                <th className="px-6 py-4">Total PnL</th>
+                <th className="px-6 py-4">ROI %</th>
+                <th className="px-6 py-4">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {(remainingTraders.length > 0 ? remainingTraders : leaderboard).map((trader) => (
+                <tr key={trader.userId} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="px-6 py-4 font-bold text-white">#{trader.rank}</td>
+                  <td className="px-6 py-4 font-semibold text-white">{trader.username}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 text-xs rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-medium">
+                      {trader.rankTier}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">${trader.currentBalance.toLocaleString()}</td>
+                  <td className={`px-6 py-4 font-semibold ${trader.totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {trader.totalPnl >= 0 ? '+' : ''}${trader.totalPnl.toLocaleString()}
+                  </td>
+                  <td className={`px-6 py-4 font-bold ${trader.roiPercentage >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {trader.roiPercentage >= 0 ? '+' : ''}{trader.roiPercentage}%
+                  </td>
+                  <td className="px-6 py-4">{trader.winRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      {/* Detail Modal Integration */}
-      <TraderModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        trader={selectedTrader as Trader | null}
-      />
-
     </div>
   );
 };
+
+// Podium Card Helper Component
+interface PodiumCardProps {
+  entry: LeaderboardEntry;
+  badgeColor: string;
+  rankBadge: string;
+  isFirst?: boolean;
+}
+
+const PodiumCard: React.FC<PodiumCardProps> = ({ entry, badgeColor, rankBadge, isFirst }) => (
+  <div
+    className={`p-6 rounded-2xl border text-center transition-all ${
+      isFirst
+        ? 'bg-gradient-to-b from-amber-500/10 via-slate-900 to-slate-900 border-amber-500/40 shadow-xl shadow-amber-500/10'
+        : 'bg-slate-900/60 border-slate-800'
+    }`}
+  >
+    <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${badgeColor} mb-4`}>
+      {rankBadge}
+    </span>
+    <h3 className="text-xl font-bold text-white">{entry.username}</h3>
+    <p className="text-xs text-slate-400 mt-1">{entry.rankTier} Tier</p>
+
+    <div className="mt-6 pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-left">
+      <div>
+        <span className="text-xs text-slate-400 block">Current Balance</span>
+        <span className="text-sm font-semibold text-white">${entry.currentBalance.toLocaleString()}</span>
+      </div>
+      <div>
+        <span className="text-xs text-slate-400 block">ROI</span>
+        <span className={`text-sm font-bold ${entry.roiPercentage >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          {entry.roiPercentage >= 0 ? '+' : ''}{entry.roiPercentage}%
+        </span>
+      </div>
+    </div>
+  </div>
+);
 
 export default Leaderboard;
