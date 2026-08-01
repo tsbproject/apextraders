@@ -1,8 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma'
+import { Prisma } from '../generated/client';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 /**
  * Update User Profile
@@ -25,11 +26,11 @@ router.patch('/update/:id', async (req, res) => {
       message: "Profile synchronized successfully.",
       user: updatedUser
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Profile Update Error:", err);
 
     // Prisma Unique Constraint Error (Username already exists)
-    if (err.code === 'P2002') {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       return res.status(400).json({ 
         message: "This username is already claimed by another trader." 
       });

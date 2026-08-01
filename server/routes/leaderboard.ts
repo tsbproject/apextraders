@@ -1,8 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+// Change from: import { prisma } from '../lib/prisma';
+// To:
+import prisma from '../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 router.get('/', async (_req, res) => {
   try {
@@ -19,7 +21,7 @@ router.get('/', async (_req, res) => {
       // HANDLE DECIMAL CONVERSION: Ensure pnlPercentage is a primitive number
       // This prevents the "red pop" error when serializing to JSON or comparing values.
       const pnlValue: number = typeof p.pnlPercentage === 'object' && p.pnlPercentage !== null && 'toNumber' in p.pnlPercentage
-        ? (p.pnlPercentage as any).toNumber()
+        ? (p.pnlPercentage as unknown as { toNumber(): number }).toNumber()
         : (p.pnlPercentage as unknown as number) ?? 0;
 
       // DYNAMIC TIER LOGIC: Aligned with your specific thresholds

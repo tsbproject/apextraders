@@ -22,6 +22,8 @@ declare global {
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
+// Export as both default and named export for maximum compatibility
+export { prisma };
 export default prisma;
 
 if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma;

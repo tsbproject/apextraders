@@ -11,7 +11,7 @@ import {
   Loader2,
   DollarSign,
 } from 'lucide-react';
-import { calculatePnL } from '../lib/pnl-engine';
+import { calculatePnL } from '../../server/lib/pnl-Engine';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';

@@ -1,9 +1,9 @@
 import express, { Request, Response, RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma'
 import { syncUserLeaderboardStats } from '../lib/leaderboard-sync';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
 
 // Define explicit interfaces for the request body
 interface SettlementBody {
@@ -17,7 +17,7 @@ interface SettlementBody {
  * SETTLE POSITION (Unified Logic)
  * Supports both PATCH (id in params) and POST (id in body)
  */
-const handleTradeSettlement: RequestHandler<{ id?: string }, any, SettlementBody> = async (req, res) => {
+const handleTradeSettlement: RequestHandler<{ id?: string }, unknown, SettlementBody> = async (req, res) => {
   // Merge sources: id can come from path params or body
   const tradeId = req.params.id || req.body.tradeId;
   const { exitPrice, pnlPercentage, tournamentId } = req.body;

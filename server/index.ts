@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import prisma from '../src/lib/prisma';
-import { calculatePnL } from '../src/lib/pnl-Engine';
+import prisma from './lib/prisma';
+import { calculatePnL } from './lib/pnl-Engine';
 import tournamentRoutes from './routes/tournament';
 
 const app = express();
@@ -26,32 +26,32 @@ interface CloseTradeBody {
 
 // --- Endpoints ---
 
-app.post('/api/trades/open', async (req: Request<{}, {}, OpenTradeBody>, res: Response) => {
+app.post('/api/trades/open', async (req: Request<object, object, OpenTradeBody>, res: Response) => {
   const { userId, symbol, side, entryPrice } = req.body;
   try {
     const newTrade = await prisma.trade.create({
       data: { userId, symbol, side, entryPrice, status: 'OPEN' },
     });
     return res.status(201).json(newTrade);
-  } catch (error) {
+  } catch {
     return res.status(500).json({ error: 'Failed to open trade' });
   }
 });
 
-app.post('/api/trades/close', async (req: Request<{}, {}, CloseTradeBody>, res: Response) => {
+app.post('/api/trades/close', async (req: Request<object, object, CloseTradeBody>, res: Response) => {
   const { tradeId, exitPrice } = req.body;
   try {
     const trade = await prisma.trade.findUnique({ where: { id: tradeId } });
     if (!trade || trade.status !== 'OPEN') return res.status(404).json({ error: 'Trade not found' });
 
-    const pnl = calculatePnL(trade.entryPrice, exitPrice, trade.side as 'BUY' | 'SELL');
+    const pnl = calculatePnL(Number(trade.entryPrice), exitPrice, trade.side as 'BUY' | 'SELL');
 
     const closedTrade = await prisma.trade.update({
       where: { id: tradeId },
       data: { exitPrice, pnlPercentage: pnl, status: 'CLOSED', closedAt: new Date() },
     });
     return res.json(closedTrade);
-  } catch (error) {
+  } catch {
     return res.status(500).json({ error: 'Failed to close trade' });
   }
 });
@@ -70,7 +70,7 @@ app.get('/api/leaderboard', async (_req: Request, res: Response) => {
     })).sort((a, b) => b.totalPnL - a.totalPnL);
 
     return res.json(rankings);
-  } catch (error) {
+  } catch {
     return res.status(500).json({ error: 'Leaderboard failed' });
   }
 });
