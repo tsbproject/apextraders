@@ -1,17 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, type JwtPayload } from '../lib/auth';
+import { verifyToken } from '../lib/auth';
 
-// 1. Extend Express Request type with optional generics to match Express.Request behavior
+/**
+ * 🔐 Custom JWT Payload Interface representing the decoded authentication token.
+ */
+export interface ApexJwtPayload {
+  userId: string;
+  email?: string;
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  iat?: number;
+  exp?: number;
+}
+
+/**
+ * 🛡️ Extended Express Request interface supporting custom payload and route generics.
+ */
 export interface AuthenticatedRequest<
   P = Record<string, string>,
   ResBody = unknown,
   ReqBody = unknown,
   ReqQuery = Record<string, string>
 > extends Request<P, ResBody, ReqBody, ReqQuery> {
-  user?: JwtPayload;
+  user?: ApexJwtPayload;
 }
 
 /**
+ * 🔒 Authenticate Token Middleware
  * Ensures the request includes a valid Bearer token in the Authorization header.
  */
 export const authenticateToken = (
@@ -28,7 +42,13 @@ export const authenticateToken = (
   }
 
   try {
-    const decoded = verifyToken(token); // Decodes JWT payload
+    const decoded = verifyToken(token) as unknown as ApexJwtPayload;
+    
+    if (!decoded || !decoded.userId) {
+      res.status(403).json({ message: 'Access Denied: Invalid Token Payload' });
+      return;
+    }
+
     req.user = decoded;
     next();
   } catch {
@@ -38,7 +58,8 @@ export const authenticateToken = (
 };
 
 /**
- * Role-Based Access Control (RBAC) middleware
+ * 👑 Role-Based Access Control (RBAC) Middleware
+ * Restricts access based on the user's role attached to req.user.
  */
 export const authorizeRoles = (...allowedRoles: Array<'USER' | 'ADMIN' | 'SUPER_ADMIN'>) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {

@@ -11,6 +11,7 @@ import { authenticateToken, AuthenticatedRequest } from './middleware/authmiddle
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import tournamentRoutes from './routes/tournament';
+import leaderboardRoutes from './routes/leaderboard';
 
 dotenv.config();
 
@@ -24,15 +25,19 @@ const PORT = process.env.PORT || 3001;
 // 1. Helmet HTTP Security Headers
 app.use(helmet());
 
-// 2. CORS Hardening
+// 2. Dynamic CORS Hardening (Localhost + Vercel Deployment Support)
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:3000', 'https://apextraders.vercel.app'];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error('CORS policy rejection: Unauthorized origin.'));
@@ -68,13 +73,16 @@ app.use('/api/admin', adminRoutes);
 // Tournament Routes
 app.use('/api/tournaments', tournamentRoutes);
 
+// Leaderboard Routes
+app.use('/api/leaderboard', leaderboardRoutes);
+
 // Health Check Endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   return res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // ==========================================
-// 📊 TRADING & LEADERBOARD ENDPOINTS
+// 📊 TRADING ENDPOINTS
 // ==========================================
 
 interface OpenTradeBody {
@@ -149,7 +157,7 @@ app.post(
         return res.status(404).json({ error: 'Open trade not found.' });
       }
 
-      // Security check: ensure the trade belongs to the requesting user (or user is admin)
+      // Security check: ensure the trade belongs to requesting user (or user is admin)
       if (trade.userId !== userId && req.user?.role === 'USER') {
         return res.status(403).json({ error: 'Forbidden: You do not own this trade.' });
       }
@@ -172,36 +180,6 @@ app.post(
     }
   }
 );
-
-/**
- * GET /api/leaderboard
- * Public leaderboard ranking users by total PnL
- */
-app.get('/api/leaderboard', async (_req: Request, res: Response) => {
-  try {
-    const users = await prisma.user.findMany({
-      include: { trades: { where: { status: 'CLOSED' } } },
-    });
-
-    const rankings = users
-      .map((user) => ({
-        id: user.id,
-        username: user.username,
-        rankTier: user.rankTier,
-        role: user.role,
-        totalPnL: parseFloat(
-          user.trades.reduce((sum, t) => sum + Number(t.pnlPercentage || 0), 0).toFixed(2)
-        ),
-        tradeCount: user.trades.length,
-      }))
-      .sort((a, b) => b.totalPnL - a.totalPnL);
-
-    return res.json(rankings);
-  } catch (error) {
-    console.error('Leaderboard fetch error:', error);
-    return res.status(500).json({ error: 'Leaderboard failed' });
-  }
-});
 
 // ==========================================
 // 🏁 SERVER START

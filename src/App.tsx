@@ -47,11 +47,16 @@ const App: React.FC = () => {
   }, [dispatch]);
 
   // Market Connection Notification
-  useEffect(() => {
-    if (connectionStatus === 'connected') {
-      notifySuccess('ApexTraders: Market Connection Secured');
-    }
-  }, [connectionStatus, notifySuccess]);
+  const hasNotifiedRef = React.useRef<boolean>(false);
+
+useEffect(() => {
+  if (connectionStatus === 'connected' && !hasNotifiedRef.current) {
+    notifySuccess('ApexTraders: Market Connection Secured');
+    hasNotifiedRef.current = true;
+  } else if (connectionStatus === 'disconnected') {
+    hasNotifiedRef.current = false;
+  }
+}, [connectionStatus, notifySuccess]);
 
   // Real-time WebSocket Balance & Order Feed Sync
   useEffect(() => {
