@@ -77,22 +77,24 @@ const Leaderboard: React.FC = () => {
   };
 
   const handleJoinTournament = async (): Promise<void> => {
-    setIsJoining(true);
-    try {
-      const payload: JoinTournamentPayload = {
-        userId: 'user_1',
-        tournamentId: 'weekly-apex-challenge',
-      };
+  setIsJoining(true);
+  try {
+    const payload: JoinTournamentPayload = {
+      userId: 'user_1',
+      tournamentId: 'weekly-apex-challenge',
+    };
 
-      const response = await api.post<JoinTournamentResponse>('/tournaments/join', payload);
-      notifySuccess(response.data.message || 'Entry Confirmed: You are now a Participant!');
-    } catch (error: unknown) {
-      const message = extractErrorMessage(error, 'Conflict: Already enrolled in this event.');
-      notifyError(message);
-    } finally {
-      setIsJoining(false);
-    }
-  };
+    // ✅ Use relative route string so your custom api instance formats it correctly:
+    const response = await api.post<JoinTournamentResponse>('/tournaments/join', payload);
+    
+    notifySuccess(response.data.message || 'Entry Confirmed: You are now a Participant!');
+  } catch (error: unknown) {
+    const message = extractErrorMessage(error, 'Conflict: Already enrolled in this event.');
+    notifyError(message);
+  } finally {
+    setIsJoining(false);
+  }
+};
 
   // ✅ 1. Added Loading State Guard
   if (loading) {
