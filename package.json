@@ -9,7 +9,13 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prebuild": "chmod +x node_modules/.bin/*"
+   
+ 
+  
+
+    
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.0",
@@ -53,4 +59,6 @@
     "vite": "^7.3.1",
     "vite-plugin-eslint": "^1.8.1"
   }
+
+
 }
