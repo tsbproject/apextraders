@@ -1,45 +1,174 @@
-import { useEffect, useState, useRef } from 'react';
+// src/hooks/usePriceFeed.ts
 
-export const usePriceFeed = (symbol: string = 'btcusdt') => {
-  const [price, setPrice] = useState<number | null>(null);
-  const ws = useRef<WebSocket | null>(null);
+import {
+  useEffect,
+  useState,
+} from 'react';
+
+import { api } from '../services/api';
+
+// ==========================================
+// TYPES
+// ==========================================
+
+interface MarketPriceResponse {
+  symbol: string;
+  price: number;
+  bid: number | null;
+  ask: number | null;
+  high: number | null;
+  low: number | null;
+  volume: number | null;
+  provider: 'quidax';
+  timestamp: string;
+}
+
+// ==========================================
+// CONFIG
+// ==========================================
+
+// Quidax is REST-based here, so we poll the
+// ApexTraders backend instead of opening a
+// Binance WebSocket.
+//
+// 2500ms is frequent enough for the current
+// trading simulator without hammering Quidax.
+const PRICE_REFRESH_INTERVAL = 2500;
+
+// ==========================================
+// NORMALIZE SYMBOL
+// ==========================================
+
+const normalizeSymbol = (
+  symbol: string
+): string => {
+  return symbol
+    .trim()
+    .toLowerCase()
+    .replace(/[\/_-]/g, '');
+};
+
+// ==========================================
+// PRICE FEED HOOK
+// ==========================================
+
+export const usePriceFeed = (
+  symbol: string = 'btcusdt'
+): number | null => {
+  const [price, setPrice] =
+    useState<number | null>(null);
 
   useEffect(() => {
-    // Only connect if we don't have an active socket or if it's closed
-    if (ws.current?.readyState === WebSocket.OPEN) return;
+    const market =
+      normalizeSymbol(symbol);
 
-    const streamUrl = `wss://stream.binance.com:9443/ws/${symbol}@trade`;
-    const socket = new WebSocket(streamUrl);
+    if (!market) {
+      setPrice(null);
+      return;
+    }
 
-    socket.onopen = () => {
-      console.log(`[ApexTraders] WebSocket Connected to ${symbol}`);
-    };
+    let mounted = true;
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // 'p' is the price field in Binance trade streams
-      if (data.p) {
-        setPrice(parseFloat(data.p));
-      }
-    };
+    let requestInProgress = false;
 
-    socket.onerror = (error) => {
-      console.error("[ApexTraders] WebSocket Error:", error);
-    };
+    const controller =
+      new AbortController();
 
-    socket.onclose = () => {
-      console.log("[ApexTraders] WebSocket Disconnected");
-    };
+    // ========================================
+    // FETCH PRICE
+    // ========================================
 
-    ws.current = socket;
+    const fetchPrice =
+      async (): Promise<void> => {
+        // Prevent overlapping requests if
+        // Quidax/backend responds slowly.
+        if (requestInProgress) {
+          return;
+        }
 
-    // CLEANUP: This is the most important part to stop the errors
+        requestInProgress = true;
+
+        try {
+          const response =
+            await api.get<MarketPriceResponse>(
+              `/market/price/${encodeURIComponent(
+                market
+              )}`,
+              {
+                signal:
+                  controller.signal,
+              }
+            );
+
+          if (!mounted) {
+            return;
+          }
+
+          const nextPrice =
+            Number(
+              response.data.price
+            );
+
+          if (
+            Number.isFinite(
+              nextPrice
+            ) &&
+            nextPrice > 0
+          ) {
+            setPrice(nextPrice);
+          }
+        } catch (error: unknown) {
+          if (!mounted) {
+            return;
+          }
+
+          // Do not destroy the last valid
+          // market price because of one
+          // temporary provider/network failure.
+          console.error(
+            `[ApexTraders] Failed to retrieve ${market} price:`,
+            error
+          );
+        } finally {
+          requestInProgress =
+            false;
+        }
+      };
+
+    // ========================================
+    // INITIAL REQUEST
+    // ========================================
+
+    void fetchPrice();
+
+    // ========================================
+    // POLLING
+    // ========================================
+
+    const intervalId =
+      window.setInterval(
+        () => {
+          void fetchPrice();
+        },
+        PRICE_REFRESH_INTERVAL
+      );
+
+    // ========================================
+    // CLEANUP
+    // ========================================
+
     return () => {
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        socket.close();
-      }
+      mounted = false;
+
+      window.clearInterval(
+        intervalId
+      );
+
+      controller.abort();
     };
   }, [symbol]);
 
   return price;
 };
+
+export default usePriceFeed;

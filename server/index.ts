@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin';
 import tournamentRoutes from './routes/tournament';
 import leaderboardRoutes from './routes/leaderboard';
 import profileRoutes from './routes/profile';
+import marketRoutes from './routes/market';
 
 dotenv.config();
 
@@ -167,6 +168,23 @@ app.use(
 app.use(
   '/api/profile',
   profileRoutes
+);
+
+
+
+// ------------------------------------------
+// Market Data
+//
+// GET /api/market/price/:symbol
+//
+// Public market-data endpoint.
+// The frontend never communicates directly
+// with the exchange provider.
+// ------------------------------------------
+
+app.use(
+  '/api/market',
+  marketRoutes
 );
 
 // ==========================================

@@ -1,25 +1,50 @@
+// src/store/store.ts
+// Use your existing filename if different.
+
 import { configureStore } from '@reduxjs/toolkit';
+
 import priceReducer from './priceSlice';
 import tradeReducer from './tradeSlice';
 import authReducer from './authSlice';
+
 import { socketMiddleware } from './middleware/socketMiddleware';
+
+// ==========================================
+// REDUX STORE
+// ==========================================
 
 export const store = configureStore({
   reducer: {
-    // Manages user authentication, JWT session, and role permissions
+    // Authentication, JWT session and roles
     auth: authReducer,
-    // Manages real-time BTC price and connection status
+
+    // Live market price + provider connection state
     price: priceReducer,
-    // Manages active and closed trading positions
+
+    // Open and closed trading positions
     trades: tradeReducer,
   },
-  // Adding the custom WebSocket middleware to the default middleware stack
+
+  // ========================================
+  // MARKET DATA MIDDLEWARE
+  //
+  // socketMiddleware is the historical name.
+  // It now polls the ApexTraders backend,
+  // which retrieves market data from Quidax.
+  // ========================================
+
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false, // Recommended when handling high-frequency WebSocket data
-    }).concat(socketMiddleware),
+    getDefaultMiddleware().concat(
+      socketMiddleware
+    ),
 });
 
-// Infer the `RootState` and `AppDispatch` types from the store itself
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+// ==========================================
+// STORE TYPES
+// ==========================================
+
+export type RootState =
+  ReturnType<typeof store.getState>;
+
+export type AppDispatch =
+  typeof store.dispatch;
