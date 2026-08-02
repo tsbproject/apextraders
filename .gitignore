@@ -1,1 +1,11 @@
-Would you like me to update your PATCH API route to handle these new bank and social fields?
+Would you like me to update your PATCH API route to handle these new bank and social fields?# Environment variables
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+.env.*
+!.env.example
