@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { Prisma } from '../generated/client';
 
@@ -7,7 +7,7 @@ import {
   AuthenticatedRequest,
 } from '../middleware/authmiddleware';
 
-const router = express.Router();
+const router = Router();
 
 // ==========================================
 // TYPES
@@ -27,7 +27,6 @@ interface UpdateProfileBody {
 router.patch(
   '/update',
   authenticateToken,
-
   async (
     req: AuthenticatedRequest<
       Record<string, string>,
@@ -39,18 +38,19 @@ router.patch(
     try {
       // ------------------------------------------
       // Identity comes from JWT
+      // Never accept user ID from frontend
       // ------------------------------------------
 
       const userId = req.user?.id;
 
       if (!userId) {
         return res.status(401).json({
-          message: 'Unauthorized: Authentication required.',
+          message: 'Unauthorized session.',
         });
       }
 
       // ------------------------------------------
-      // Normalize incoming fields
+      // Normalize input
       // ------------------------------------------
 
       const username =
@@ -64,75 +64,39 @@ router.patch(
           : undefined;
 
       // ------------------------------------------
-      // Require at least one field
+      // Validation
       // ------------------------------------------
 
-      if (username === undefined && bio === undefined) {
+      if (username !== undefined && username.length < 3) {
         return res.status(400).json({
-          message: 'No profile changes were provided.',
+          message:
+            'Username must contain at least 3 characters.',
         });
       }
 
-      // ------------------------------------------
-      // Validate username
-      // ------------------------------------------
-
-      if (username !== undefined) {
-        if (!username) {
-          return res.status(400).json({
-            message: 'Username cannot be empty.',
-          });
-        }
-
-        if (username.length < 3) {
-          return res.status(400).json({
-            message:
-              'Username must be at least 3 characters long.',
-          });
-        }
-
-        if (username.length > 50) {
-          return res.status(400).json({
-            message:
-              'Username must not exceed 50 characters.',
-          });
-        }
+      if (username !== undefined && username.length > 50) {
+        return res.status(400).json({
+          message:
+            'Username cannot exceed 50 characters.',
+        });
       }
-
-      // ------------------------------------------
-      // Validate bio
-      // Prisma schema: @db.VarChar(160)
-      // ------------------------------------------
 
       if (bio !== undefined && bio.length > 160) {
         return res.status(400).json({
           message:
-            'Bio must not exceed 160 characters.',
+            'Bio cannot exceed 160 characters.',
+        });
+      }
+
+      if (username === undefined && bio === undefined) {
+        return res.status(400).json({
+          message:
+            'No profile changes were provided.',
         });
       }
 
       // ------------------------------------------
-      // Verify authenticated user still exists
-      // ------------------------------------------
-
-      const existingUser = await prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
-
-        select: {
-          id: true,
-        },
-      });
-
-      if (!existingUser) {
-        return res.status(404).json({
-          message: 'User account not found.',
-        });
-      }
-
-      // ------------------------------------------
-      // Update ONLY authenticated user's profile
+      // Update user
       // ------------------------------------------
 
       const updatedUser = await prisma.user.update({
@@ -146,10 +110,7 @@ router.patch(
             : {}),
 
           ...(bio !== undefined
-            ? {
-                // Empty bio becomes null
-                bio: bio || null,
-              }
+            ? { bio }
             : {}),
         },
 
@@ -172,8 +133,7 @@ router.patch(
       });
 
       // ------------------------------------------
-      // Keep frontend user structure consistent
-      // with login + /auth/me
+      // Frontend-compatible user shape
       // ------------------------------------------
 
       const safeUser = {
@@ -192,7 +152,8 @@ router.patch(
       };
 
       return res.status(200).json({
-        message: 'Profile synchronized successfully.',
+        message:
+          'Profile synchronized successfully.',
         user: safeUser,
       });
     } catch (error: unknown) {
@@ -200,10 +161,6 @@ router.patch(
         'Profile Update Error:',
         error
       );
-
-      // ------------------------------------------
-      // Username unique constraint
-      // ------------------------------------------
 
       if (
         error instanceof
@@ -213,6 +170,17 @@ router.patch(
         return res.status(409).json({
           message:
             'This username is already claimed by another trader.',
+        });
+      }
+
+      if (
+        error instanceof
+          Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return res.status(404).json({
+          message:
+            'User profile not found.',
         });
       }
 

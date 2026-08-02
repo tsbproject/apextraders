@@ -1,46 +1,91 @@
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from 'axios';
 
-// Dynamically determine the API base URL
+// ==========================================
+// API BASE URL
+// ==========================================
+
 const getBaseUrl = (): string => {
-  // If explicitly provided via environment variables (Vite)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL;
+
+  // Explicit Vite environment configuration takes priority.
+  if (envUrl) {
+    return String(envUrl).replace(/\/+$/, '');
   }
 
-  // Production check on Vercel
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    return 'https://apextraders-api.onrender.com/api'; // Replace with your production backend domain
+  // Production fallback.
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname.includes('vercel.app')
+  ) {
+    return 'https://apextraders-api.onrender.com/api';
   }
 
-  // Fallback to local development port
+  // Local development backend.
   return 'http://localhost:3001/api';
 };
 
-const API_BASE_URL = getBaseUrl().replace(/\/+$/, '');
+export const API_BASE_URL = getBaseUrl();
+
+// ==========================================
+// AXIOS INSTANCE
+// ==========================================
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
+
   headers: {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
+
+  timeout: 15_000,
 });
 
-// Interceptor: Inject JWT Token & Fix Relative Slashes
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('apex_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+// ==========================================
+// REQUEST INTERCEPTOR
+// ==========================================
 
-    // Ensure leading slash doesn't strip subpaths when URL is relative
-    if (config.url && config.url.startsWith('/') && API_BASE_URL.endsWith('/api')) {
-      config.url = config.url.substring(1);
+api.interceptors.request.use(
+  (
+    config: InternalAxiosRequestConfig
+  ): InternalAxiosRequestConfig => {
+    const token =
+      localStorage.getItem('apex_token');
+
+    if (token) {
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
 
     return config;
   },
-  (error: unknown) => Promise.reject(error)
+
+  (error: unknown) => {
+    return Promise.reject(error);
+  }
+);
+
+// ==========================================
+// RESPONSE INTERCEPTOR
+// ==========================================
+
+api.interceptors.response.use(
+  (response) => response,
+
+  (error: AxiosError) => {
+    /*
+     * Do NOT automatically delete the JWT here.
+     *
+     * Authentication state is controlled by authSlice/useAuthInit.
+     * This prevents an unrelated forbidden request from unexpectedly
+     * logging the user out.
+     */
+
+    return Promise.reject(error);
+  }
 );
 
 export default api;

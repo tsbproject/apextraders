@@ -1,25 +1,20 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { setAuthSuccess, logout } from '../store/authSlice';
-import { api } from '../services/api';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchCurrentUser, logout } from '../store/authSlice';
 
 export const useAuthInit = () => {
-  const dispatch = useDispatch();
-  const token = useSelector((state: RootState) => state.auth.token);
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const user = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!token) return;
-      try {
-        const response = await api.get('/auth/me');
-        dispatch(setAuthSuccess({ user: response.data.user, token }));
-      } catch  {
-        console.error('Session expired or invalid token');
-        dispatch(logout());
-      }
-    };
+    // If no token exists, ensure clean logged out state
+    if (!token) {
+      if (user) dispatch(logout());
+      return;
+    }
 
-    fetchProfile();
+    // Re-verify session in background on mount
+    dispatch(fetchCurrentUser());
   }, [dispatch, token]);
 };

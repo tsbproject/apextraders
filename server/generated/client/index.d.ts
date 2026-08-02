@@ -62,6 +62,16 @@ export const RankTier: {
 
 export type RankTier = (typeof RankTier)[keyof typeof RankTier]
 
+
+export const TournamentStatus: {
+  UPCOMING: 'UPCOMING',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED'
+};
+
+export type TournamentStatus = (typeof TournamentStatus)[keyof typeof TournamentStatus]
+
 }
 
 export type Role = $Enums.Role
@@ -71,6 +81,10 @@ export const Role: typeof $Enums.Role
 export type RankTier = $Enums.RankTier
 
 export const RankTier: typeof $Enums.RankTier
+
+export type TournamentStatus = $Enums.TournamentStatus
+
+export const TournamentStatus: typeof $Enums.TournamentStatus
 
 /**
  * ##  Prisma Client ʲˢ

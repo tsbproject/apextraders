@@ -3,20 +3,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { setAuthStart, setAuthSuccess, setAuthFailure } from '../../store/authSlice';
 import { api } from '../../services/api';
-
-// Access notification context helpers based on project standards
 import { useNotification } from '../../context/NotificationContext';
+import { NavigationTab } from '../../App';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: 'login' | 'register';
+  onLoginSuccess?: (role?: string) => void; // 👈 Added callback
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   defaultMode = 'login',
+  onLoginSuccess,
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
   const [formData, setFormData] = useState({
@@ -40,28 +41,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     dispatch(setAuthStart());
 
     try {
-      if (mode === 'login') {
-        const response = await api.post('/auth/login', {
-          email: formData.email,
-          password: formData.password,
-        });
+      const endpoint = mode === 'login' ? '/auth/login' : '/auth/register';
+      const payload =
+        mode === 'login'
+          ? { email: formData.email, password: formData.password }
+          : { username: formData.username, email: formData.email, password: formData.password };
 
-        const { user, token, message } = response.data;
-        dispatch(setAuthSuccess({ user, token }));
-        notifySuccess(message || 'Welcome back to ApexTraders!');
-        onClose();
-      } else {
-        const response = await api.post('/auth/register', {
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        });
+      const response = await api.post(endpoint, payload);
+      const { user, token, message } = response.data;
 
-        const { user, token, message } = response.data;
-        dispatch(setAuthSuccess({ user, token }));
-        notifySuccess(message || 'Account created successfully!');
-        onClose();
+      dispatch(setAuthSuccess({ user, token }));
+      notifySuccess(message || (mode === 'login' ? 'Welcome back to ApexTraders!' : 'Account created successfully!'));
+
+      // 🎯 Direct tab switch based on user role
+      if (onLoginSuccess) {
+        onLoginSuccess(user?.role);
       }
+
+      onClose();
     } catch (err: any) {
       const errorMessage =
         err.response?.data?.message || 'Authentication failed. Please check your credentials.';
@@ -75,8 +72,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="relative w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl">
         {/* Close Button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-xl font-bold"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-xl font-bold cursor-pointer"
         >
           ✕
         </button>
@@ -84,8 +82,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Header Tabs */}
         <div className="flex border-b border-slate-800 mb-6">
           <button
+            type="button"
             onClick={() => setMode('login')}
-            className={`pb-3 font-semibold text-lg flex-1 text-center border-b-2 transition-colors ${
+            className={`pb-3 font-semibold text-lg flex-1 text-center border-b-2 transition-colors cursor-pointer ${
               mode === 'login'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -94,8 +93,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Sign In
           </button>
           <button
+            type="button"
             onClick={() => setMode('register')}
-            className={`pb-3 font-semibold text-lg flex-1 text-center border-b-2 transition-colors ${
+            className={`pb-3 font-semibold text-lg flex-1 text-center border-b-2 transition-colors cursor-pointer ${
               mode === 'register'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -158,7 +158,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-2 py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold transition-all shadow-lg shadow-emerald-600/20 flex justify-center items-center"
+            className="w-full mt-2 py-3 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold transition-all shadow-lg shadow-emerald-600/20 flex justify-center items-center cursor-pointer"
           >
             {isLoading ? (
               <span className="inline-block animate-spin border-2 border-white border-t-transparent rounded-full h-5 w-5" />

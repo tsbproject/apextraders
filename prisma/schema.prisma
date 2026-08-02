@@ -74,6 +74,15 @@ model Trade {
   @@map("trades")
 }
 
+
+enum TournamentStatus {
+  UPCOMING
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+
 model Tournament {
   id           String        @id @default(cuid())
   title        String
@@ -106,6 +115,11 @@ model Participant {
   @@unique([userId, tournamentId])
   @@map("participants")
 }
+
+
+
+
+
 
 
 

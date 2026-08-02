@@ -1,11 +1,24 @@
-import React, { useEffect } from 'react';
-import { LayoutDashboard, Briefcase, Trophy, Settings, X } from 'lucide-react';
 
-export type NavTab = 'trade' | 'portfolio' | 'leaderboard' | 'settings';
+
+
+
+import React, { useEffect } from 'react';
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  Trophy, 
+  Settings, 
+  X, 
+  UserCheck, 
+  ShieldCheck 
+} from 'lucide-react';
+import { useAppSelector } from '../../store/hooks';
+import { NavigationTab, AuthModalMode } from '../../App';
 
 export interface SidebarProps {
-  activeTab: NavTab;
-  setActiveTab: (tab: NavTab) => void;
+  activeTab: NavigationTab;
+  setActiveTab: (tab: NavigationTab) => void;
+  onOpenAuth?: (mode: AuthModalMode) => void;
   /** Mobile drawer toggle state */
   isOpen?: boolean;
   /** Function to close mobile drawer overlay */
@@ -13,7 +26,7 @@ export interface SidebarProps {
 }
 
 interface MenuItem {
-  id: NavTab;
+  id: NavigationTab;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
@@ -24,12 +37,25 @@ const mainMenuItems: MenuItem[] = [
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
 ];
 
+const adminMenuItems: MenuItem[] = [
+  { id: 'admin', label: 'User Admin', icon: UserCheck },
+  { id: 'admin-tournaments', label: 'Tournament Ops', icon: ShieldCheck },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   isOpen = false,
   onClose,
 }) => {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const userRole = user?.role?.toUpperCase();
+    const isAdmin = isAuthenticated && (
+      userRole === 'ADMIN' || 
+      userRole === 'SUPER_ADMIN' || 
+      userRole === 'SUPERADMIN'
+    );
+
   // Close drawer on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,11 +67,37 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const handleTabClick = (tab: NavTab) => {
+  const handleTabClick = (tab: NavigationTab) => {
     setActiveTab(tab);
     if (onClose) {
       onClose(); // Auto-close drawer on mobile item selection
     }
+  };
+
+  const renderNavButton = (item: MenuItem, isMobileDrawer = false) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    const isAdminItem = item.id === 'admin' || item.id === 'admin-tournaments';
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => handleTabClick(item.id)}
+        className={`w-full flex items-center gap-3 px-4 ${isMobileDrawer ? 'py-3.5' : 'py-3'} rounded-xl font-bold transition-all cursor-pointer ${
+          isActive
+            ? isAdminItem
+              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+              : 'bg-indigo-500/10 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-500/20'
+            : isAdminItem
+            ? 'text-amber-500/70 hover:bg-amber-500/5 hover:text-amber-300'
+            : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
+        }`}
+      >
+        <Icon size={20} />
+        <span className="text-xs uppercase tracking-wider">{item.label}</span>
+      </button>
+    );
   };
 
   return (
@@ -63,25 +115,17 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Main Navigation */}
         <nav className="space-y-2 flex-1">
-          {mainMenuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleTabClick(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
-                  isActive
-                    ? 'bg-indigo-500/10 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-500/20'
-                    : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
-                }`}
-              >
-                <Icon size={20} />
-                <span className="text-xs uppercase tracking-wider">{item.label}</span>
-              </button>
-            );
-          })}
+          {mainMenuItems.map((item) => renderNavButton(item))}
+
+          {/* Admin Navigation Section */}
+          {isAdmin && (
+            <div className="pt-4 mt-4 border-t border-white/5 space-y-2">
+              <p className="px-4 text-[10px] font-bold uppercase tracking-wider text-amber-500/80 mb-2">
+                Admin Control
+              </p>
+              {adminMenuItems.map((item) => renderNavButton(item))}
+            </div>
+          )}
         </nav>
 
         {/* Settings Footer Section */}
@@ -89,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => handleTabClick('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all cursor-pointer ${
               activeTab === 'settings'
                 ? 'bg-indigo-500/10 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-500/20'
                 : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
@@ -122,7 +166,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white cursor-pointer"
                 aria-label="Close menu"
               >
                 <X size={20} />
@@ -131,25 +175,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Menu Items */}
             <nav className="space-y-2 flex-1">
-              {mainMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all ${
-                      isActive
-                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                        : 'text-slate-400 hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span className="text-xs uppercase tracking-wider">{item.label}</span>
-                  </button>
-                );
-              })}
+              {mainMenuItems.map((item) => renderNavButton(item, true))}
+
+              {isAdmin && (
+                <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
+                  <p className="px-4 text-[10px] font-bold uppercase tracking-wider text-amber-500/80 mb-2">
+                    Admin Control
+                  </p>
+                  {adminMenuItems.map((item) => renderNavButton(item, true))}
+                </div>
+              )}
             </nav>
 
             {/* Mobile Footer Settings */}
@@ -157,7 +192,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => handleTabClick('settings')}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all cursor-pointer ${
                   activeTab === 'settings'
                     ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
                     : 'text-slate-400 hover:bg-white/5'
@@ -172,10 +207,14 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* 3. MOBILE BOTTOM NAVIGATION BAR (Fixed at bottom for mobile) */}
+      {/* 3. MOBILE BOTTOM NAVIGATION BAR (Fixed at bottom)         */}
       {/* ========================================================= */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 border-t border-white/10 backdrop-blur-md px-2 py-2 flex justify-around items-center">
-        {[...mainMenuItems, { id: 'settings' as NavTab, label: 'Settings', icon: Settings }].map((item) => {
+        {[
+          ...mainMenuItems,
+          ...(isAdmin ? adminMenuItems : []),
+          { id: 'settings' as NavigationTab, label: 'Settings', icon: Settings },
+        ].map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -183,12 +222,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               type="button"
               onClick={() => handleTabClick(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 isActive ? 'text-indigo-400 font-bold' : 'text-slate-500 hover:text-slate-300'
               }`}
             >
               <Icon size={18} />
-              <span className="text-[10px] uppercase tracking-tight">{item.label}</span>
+              <span className="text-[9px] uppercase tracking-tight truncate max-w-[50px]">
+                {item.label}
+              </span>
             </button>
           );
         })}
