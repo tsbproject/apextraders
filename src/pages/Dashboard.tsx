@@ -17,19 +17,34 @@ import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
 import CurrentRank from '../_components/CurrentRank';
 
-export interface DashboardProps {
-  btcPrice: number | null;
-}
+const Dashboard: React.FC = () => {
+  
+  const btcPrice = useAppSelector(
+    (state) => state.price.btc
+  );
 
-const ACTIVE_TOURNAMENT = 'weekly-apex-challenge';
+  const priceStatus = useAppSelector(
+    (state) => state.price.status
+  );
 
-const Dashboard: React.FC<DashboardProps> = ({ btcPrice }) => {
-  const [amount, setAmount] = useState<string>('1000');
-  const [isExecuting, setIsExecuting] = useState<boolean>(false);
-  const [closingId, setClosingId] = useState<string | null>(null);
+ 
+
+  const dispatch = useAppDispatch();
+
+  const [amount, setAmount] =
+    useState<string>('1000');
+
+  const [isExecuting, setIsExecuting] =
+    useState<boolean>(false);
+
+  const [closingId, setClosingId] =
+    useState<string | null>(null);
+
+
+
 
   const trades = useAppSelector((state) => state.trades.positions);
-  const dispatch = useAppDispatch();
+
 
   const handleTrade = async (side: 'BUY' | 'SELL') => {
     if (!btcPrice) {
@@ -47,20 +62,19 @@ const Dashboard: React.FC<DashboardProps> = ({ btcPrice }) => {
     try {
       await dispatch(
         openTrade({
-          userId: 'user_1',
           symbol: 'BTC/USDT',
           side,
           entryPrice: btcPrice,
-          tournamentId: ACTIVE_TOURNAMENT,
         })
       ).unwrap();
+        
 
       NotifySuccess(
         `${side} Order Filled at $${btcPrice.toLocaleString(undefined, {
           minimumFractionDigits: 2,
         })}`
       );
-    } catch (err) {
+    } catch  {
       NotifyError('Order Rejected: Check connectivity or balance.');
     } finally {
       setIsExecuting(false);
@@ -76,18 +90,17 @@ const Dashboard: React.FC<DashboardProps> = ({ btcPrice }) => {
     setClosingId(tradeId);
     try {
       const result = await dispatch(
-        closeTrade({
-          tradeId,
-          exitPrice: btcPrice,
-          tournamentId: ACTIVE_TOURNAMENT,
-        })
-      ).unwrap();
+          closeTrade({
+            tradeId,
+            exitPrice: btcPrice,
+          })
+        ).unwrap();
 
       const finalPnL = result?.pnlPercentage
         ? result.pnlPercentage.toFixed(2)
         : '0.00';
       NotifySuccess(`Position Settled! Final PnL: ${finalPnL}%`);
-    } catch (err) {
+    } catch  {
       NotifyError('Database Error: Settlement could not be saved.');
     } finally {
       setClosingId(null);

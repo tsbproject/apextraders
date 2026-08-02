@@ -57,7 +57,7 @@ const AppContent: React.FC = () => {
   // Derive activeTab directly during render (No useEffect or setState required)
   const activeTab = getActiveTabFromPath(location.pathname);
 
-  const btcPrice = useAppSelector((state) => state.price.btc);
+ 
   const connectionStatus = useAppSelector((state) => state.price.status);
   const { isAuthenticated, user, token } = useAppSelector((state) => state.auth);
 
@@ -91,10 +91,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Market Ticker Streaming Engine
-  useEffect(() => {
-    dispatch({ type: 'price/startStreaming' });
-  }, [dispatch]);
+  // Quidax Market Price Feed
+        useEffect(() => {
+          dispatch({ type: 'price/startStreaming' });
+        }, [dispatch]);
 
   // Market Connection Notification
   const hasNotifiedRef = React.useRef<boolean>(false);
@@ -152,13 +152,13 @@ const AppContent: React.FC = () => {
 
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top Header with Live Ticker & Auth Controls */}
-        <Header btcPrice={btcPrice} onOpenAuth={handleOpenAuth} />
+        <Header onOpenAuth={handleOpenAuth} />
 
         {/* Main Viewport */}
         <main className="flex-1 overflow-y-auto p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-brand-dark">
           <div className="max-w-7xl mx-auto">
             {/* Tab Rendering with Guest Prompt fallback */}
-            {activeTab === 'trade' && <Dashboard btcPrice={btcPrice} />}
+            {activeTab === 'trade' && <Dashboard />}
 
             {activeTab === 'portfolio' &&
               (isAuthenticated ? (

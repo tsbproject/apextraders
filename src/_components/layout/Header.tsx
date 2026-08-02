@@ -1,16 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Bell, User, Menu, X, LogIn, UserPlus } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { AuthModalMode } from '../../App';
 
 export interface HeaderProps {
-  btcPrice: number | null;
-  /** Modal open handler for auth triggers */
   onOpenAuth?: (mode: AuthModalMode) => void;
-  /** Mobile sidebar toggle handler */
   onToggleMobileSidebar?: () => void;
-  /** Track whether mobile menu is currently expanded */
   isMobileSidebarOpen?: boolean;
 }
 
@@ -20,40 +16,69 @@ export interface HeaderProps {
  * guest auth triggers, user status, and responsive mobile layout.
  */
 const Header: React.FC<HeaderProps> = ({
-  btcPrice,
   onOpenAuth,
   onToggleMobileSidebar,
   isMobileSidebarOpen = false,
 }) => {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+      const { isAuthenticated, user } =
+        useAppSelector((state) => state.auth);
 
-  // Track previous price and derived states during render
-  const [prevPrice, setPrevPrice] = useState<number | null>(null);
-  const [priceColor, setPriceColor] = useState<string>('#94a3b8'); // Slate-400
-  const [isTrendingUp, setIsTrendingUp] = useState<boolean>(true);
+      const btcPrice = useAppSelector(
+        (state) => state.price.btc
+      );
 
-  // Derive price direction & pulse color when btcPrice changes
-  if (btcPrice !== prevPrice) {
-    setPrevPrice(btcPrice);
+      const priceStatus = useAppSelector(
+        (state) => state.price.status
+      );
 
-    if (prevPrice !== null && btcPrice !== null) {
-      if (btcPrice > prevPrice) {
-        setPriceColor('#10b981'); // Emerald-500
-        setIsTrendingUp(true);
-      } else if (btcPrice < prevPrice) {
-        setPriceColor('#f43f5e'); // Rose-500
-        setIsTrendingUp(false);
-      }
-    }
+
+
+
+      
+
+
+//   // Track previous price and derived states during render
+
+
+const previousPriceRef = useRef<number | null>(null);
+
+const [priceDirection, setPriceDirection] =
+  useState<'up' | 'down' | 'neutral'>('neutral');
+
+useEffect(() => {
+  if (btcPrice === null) {
+    return;
   }
 
-  // Effect handles asynchronously resetting the flash pulse back to neutral
-  useEffect(() => {
-    if (priceColor !== '#f8fafc' && priceColor !== '#94a3b8') {
-      const timer = setTimeout(() => setPriceColor('#f8fafc'), 400);
-      return () => clearTimeout(timer);
-    }
-  }, [priceColor]);
+  const previousPrice = previousPriceRef.current;
+
+  previousPriceRef.current = btcPrice;
+
+  if (previousPrice === null || btcPrice === previousPrice) {
+    return;
+  }
+
+  const timer = window.setTimeout(() => {
+    setPriceDirection(
+      btcPrice > previousPrice ? 'up' : 'down'
+    );
+  }, 0);
+
+  return () => {
+    window.clearTimeout(timer);
+  };
+}, [btcPrice]);
+
+
+
+const priceColor =
+  priceDirection === 'up'
+    ? '#10b981'
+    : priceDirection === 'down'
+      ? '#f43f5e'
+      : '#f8fafc';
+
+const isTrendingUp = priceDirection !== 'down';
 
   const userName = user?.username || 'Trader';
   const userRole = user?.role ? String(user.role).toUpperCase() : 'MEMBER';
@@ -128,13 +153,45 @@ const Header: React.FC<HeaderProps> = ({
           </div>
           
           {/* Connection Status Badge */}
-          <div className="hidden xs:flex items-center gap-1.5 rounded-full border border-emerald-500/10 bg-emerald-500/5 px-2.5 py-1 sm:gap-2 sm:px-3">
+          <div
+            className={`hidden xs:flex items-center gap-1.5 rounded-full border px-2.5 py-1 sm:gap-2 sm:px-3 ${
+              priceStatus === 'connected'
+                ? 'border-emerald-500/10 bg-emerald-500/5'
+                : priceStatus === 'connecting'
+                ? 'border-amber-500/10 bg-amber-500/5'
+                : 'border-rose-500/10 bg-rose-500/5'
+            }`}
+          >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              {priceStatus === 'connected' && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              )}
+
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${
+                  priceStatus === 'connected'
+                    ? 'bg-emerald-500'
+                    : priceStatus === 'connecting'
+                    ? 'bg-amber-500'
+                    : 'bg-rose-500'
+                }`}
+              />
             </span>
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-              Live Feed
+
+            <span
+              className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
+                priceStatus === 'connected'
+                  ? 'text-emerald-500'
+                  : priceStatus === 'connecting'
+                  ? 'text-amber-500'
+                  : 'text-rose-500'
+              }`}
+            >
+              {priceStatus === 'connected'
+                ? 'Live Feed'
+                : priceStatus === 'connecting'
+                ? 'Connecting'
+                : 'Offline'}
             </span>
           </div>
         </div>

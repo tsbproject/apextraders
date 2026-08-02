@@ -68,7 +68,7 @@ const Tournaments: React.FC = () => {
         const errorData = await res.json().catch(() => ({}));
         NotifyError(errorData.message || "You're already in this race.");
       }
-    } catch (err) {
+    } catch  {
       NotifyError('Engine error: Could not process entry.');
     } finally {
       setJoiningId(null);
