@@ -15,10 +15,6 @@ export interface Ranker {
   rankTier: string;
 }
 
-export interface JoinTournamentPayload {
-  userId: string;
-  tournamentId: string;
-}
 
 export interface JoinTournamentResponse {
   message: string;
@@ -29,6 +25,16 @@ const Leaderboard: React.FC = () => {
   const [rankers, setRankers] = useState<Ranker[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isJoining, setIsJoining] = useState<boolean>(false);
+  const [activeTournaments, setActiveTournaments] = useState<{ id: string; title: string; startDate: string; endDate: string }[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  useEffect(() => {
+    void api.get<{ id: string; title: string; startDate: string; endDate: string }[]>('/tournaments').then(({ data }) => {
+      const now = Date.now();
+      const open = data.filter(t => new Date(t.startDate).getTime() <= now && now < new Date(t.endDate).getTime());
+      setActiveTournaments(open);
+      setSelectedTournamentId(previous => open.some(t => t.id === previous) ? previous : (open[0]?.id ?? ''));
+    }).catch(() => { setActiveTournaments([]); setSelectedTournamentId(''); });
+  }, []);
 
   // State for Trader Inspection Modal
   const [selectedTrader, setSelectedTrader] = useState<Ranker | null>(null);
@@ -79,10 +85,8 @@ const Leaderboard: React.FC = () => {
   const handleJoinTournament = async (): Promise<void> => {
   setIsJoining(true);
   try {
-    const payload: JoinTournamentPayload = {
-      userId: 'user_1',
-      tournamentId: 'weekly-apex-challenge',
-    };
+    if (!selectedTournamentId) { notifyError('Select an open tournament first.'); return; }
+    const payload = { tournamentId: selectedTournamentId };
 
     // ✅ Use relative route string so your custom api instance formats it correctly:
     const response = await api.post<JoinTournamentResponse>('/tournaments/join', payload);
@@ -130,10 +134,15 @@ const Leaderboard: React.FC = () => {
             </p>
           </div>
 
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+          <select aria-label="Select active tournament" value={selectedTournamentId} onChange={e => setSelectedTournamentId(e.target.value)} className="rounded-xl bg-slate-900 border border-white/20 px-3 py-2 text-sm text-white" disabled={isJoining || activeTournaments.length === 0}>
+            {activeTournaments.length === 0 && <option value="">No tournaments currently open</option>}
+            {activeTournaments.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+          </select>
           <button
             type="button"
             onClick={handleJoinTournament}
-            disabled={isJoining}
+            disabled={isJoining || !selectedTournamentId}
             className="w-full md:w-auto flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-indigo-600 px-6 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
           >
             {isJoining ? (
@@ -145,6 +154,7 @@ const Leaderboard: React.FC = () => {
               <span>Join Active Tournament</span>
             )}
           </button>
+          </div>
         </div>
         <div className="absolute top-0 right-0 -mt-32 -mr-32 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none" />
       </div>
