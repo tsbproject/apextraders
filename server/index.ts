@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import * as dotenv from 'dotenv';
 
 import prisma from './lib/prisma';
+import { Prisma } from './generated/client';
 import { calculatePnL } from './lib/pnl-Engine';
 
 import {
@@ -213,6 +214,7 @@ interface OpenTradeBody {
   side: 'BUY' | 'SELL';
   entryPrice: number;
   tournamentId?: string;
+  allocatedCapital?: number;
 }
 
 interface CloseTradeBody {
@@ -369,6 +371,11 @@ app.post(
         }
       }
 
+      const allocation = Number(req.body.allocatedCapital);
+      if (tournamentId && (!Number.isFinite(allocation) || allocation <= 0 || allocation > 10000)) {
+        return res.status(400).json({ error: 'Tournament trades require positive allocatedCapital (maximum 10000).' });
+      }
+
       // ------------------------------------------
       // Create trade
       //
@@ -376,21 +383,38 @@ app.post(
       // Database: Trade.userId
       // ------------------------------------------
 
-      const newTrade =
-        await prisma.trade.create({
+      const newTrade = await prisma.$transaction(async tx => {
+        if (tournamentId) {
+          const tournament = await tx.tournament.findUnique({ where: { id: tournamentId } });
+          const now = new Date();
+          if (!tournament || tournament.status !== 'ACTIVE' || now < tournament.startDate || now >= tournament.endDate) {
+            throw new Error('TOURNAMENT_CLOSED');
+          }
+          const participant = await tx.participant.findUnique({
+            where: { userId_tournamentId: { userId, tournamentId } },
+          });
+          if (!participant) throw new Error('NOT_ENROLLED');
+          const reserved = await tx.trade.aggregate({
+            where: { userId, tournamentId, status: 'OPEN' },
+            _sum: { allocatedCapital: true },
+          });
+          const available = participant.currentBalance.sub(reserved._sum.allocatedCapital ?? 0);
+          if (available.lessThan(allocation)) throw new Error('INSUFFICIENT_CAPITAL');
+        }
+        return tx.trade.create({
           data: {
-            userId,
-            symbol,
-            side,
-            entryPrice,
-            tournamentId:
-              tournamentId ?? null,
+            userId, symbol, side, entryPrice,
+            tournamentId: tournamentId ?? null,
+            allocatedCapital: tournamentId ? allocation : null,
             status: 'OPEN',
           },
         });
-
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       return res.status(201).json(newTrade);
     } catch (error: unknown) {
+      if (error instanceof Error && ['TOURNAMENT_CLOSED', 'NOT_ENROLLED', 'INSUFFICIENT_CAPITAL'].includes(error.message)) {
+        return res.status(409).json({ error: error.message });
+      }
       console.error(
         'Error opening trade:',
         error
@@ -534,23 +558,48 @@ app.post(
       // Close trade
       // ------------------------------------------
 
-      const closedTrade =
-        await prisma.trade.update({
-          where: {
-            id: tradeId,
-          },
-
+      const closedTrade = await prisma.$transaction(async tx => {
+        const updated = await tx.trade.updateMany({
+          where: { id: tradeId, userId, status: 'OPEN' },
           data: {
             exitPrice,
             pnlPercentage: pnl,
+            realizedPnl: trade.tournamentId && trade.allocatedCapital
+              ? trade.allocatedCapital.mul(new Prisma.Decimal(pnl)).div(100)
+              : null,
             status: 'CLOSED',
           },
         });
-
+        if (updated.count !== 1) throw new Error('TRADE_ALREADY_CLOSED');
+        if (trade.tournamentId) {
+          const tournament = await tx.tournament.findUnique({ where: { id: trade.tournamentId } });
+          if (!tournament || tournament.status !== 'ACTIVE' || new Date() >= tournament.endDate) {
+            throw new Error('TOURNAMENT_CLOSED');
+          }
+          if (!trade.allocatedCapital) throw new Error('MISSING_ALLOCATION');
+          const participant = await tx.participant.findUnique({
+            where: { userId_tournamentId: { userId, tournamentId: trade.tournamentId } },
+          });
+          if (!participant) throw new Error('NOT_ENROLLED');
+          const realized = trade.allocatedCapital.mul(new Prisma.Decimal(pnl)).div(100);
+          const balance = participant.currentBalance.add(realized);
+          await tx.participant.update({
+            where: { id: participant.id },
+            data: {
+              currentBalance: balance,
+              pnlPercentage: balance.sub(participant.startingBalance).div(participant.startingBalance).mul(100),
+            },
+          });
+        }
+        return tx.trade.findUniqueOrThrow({ where: { id: tradeId } });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       return res.status(200).json(
         closedTrade
       );
     } catch (error: unknown) {
+      if (error instanceof Error && ['TRADE_ALREADY_CLOSED', 'TOURNAMENT_CLOSED', 'MISSING_ALLOCATION', 'NOT_ENROLLED'].includes(error.message)) {
+        return res.status(409).json({ error: error.message });
+      }
       console.error(
         'Error closing trade:',
         error
