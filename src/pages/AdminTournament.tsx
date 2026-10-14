@@ -608,6 +608,15 @@ const AdminTournaments: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="w-full text-xs text-slate-400">
+                    {tournament.description && <p className="mb-2 whitespace-pre-wrap text-slate-300">{tournament.description}</p>}
+                    <div className="flex flex-wrap gap-x-5 gap-y-2">
+                      <span>Max participants: <strong className="text-white">{tournament.maxParticipants ?? 100}</strong></span>
+                      <span>Entry fee: <strong className="text-white">{tournament.entryFee ?? 0}</strong> demo credits</span>
+                      <span>Prize pool: <strong className="text-white">{tournament.prizePool ?? 0}</strong> demo credits</span>
+                    </div>
+                  </div>
+
                   {/* ACTIONS */}
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
