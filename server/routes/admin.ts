@@ -9,6 +9,7 @@ import {
   Role,
   RankTier,
   TournamentStatus,
+  Prisma,
 } from '../generated/client';
 
 import prisma from '../lib/prisma';
@@ -368,12 +369,11 @@ router.patch(
 
         [TournamentStatus.ACTIVE]: [
           TournamentStatus.PAUSED,
-          TournamentStatus.COMPLETED,
         ],
 
         [TournamentStatus.PAUSED]: [
           TournamentStatus.ACTIVE,
-          TournamentStatus.COMPLETED,
+          TournamentStatus.CANCELLED,
         ],
 
         [TournamentStatus.COMPLETED]: [],
@@ -667,6 +667,83 @@ router.post(
 
 
 
+
+/**
+ * Settle a finished tournament. Winner takes the configured demo-credit prize pool.
+ * Ranking: highest PnL percentage, then earliest enrollment, then participant ID.
+ * The terminal status and wallet credit commit together in one serializable transaction.
+ */
+router.post(
+  '/tournaments/:tournamentId/settle',
+  authorizeRoles(Role.ADMIN, Role.SUPER_ADMIN) as RequestHandler,
+  async (req: CustomAdminRequest<UpdateTournamentStatusParams>, res: Response): Promise<void> => {
+    const tournamentId = req.params.tournamentId;
+    class SettlementError extends Error {
+      constructor(public readonly code: number, message: string) { super(message); }
+    }
+    try {
+      let result: { winnerId: string | null; prize: string } | undefined;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          result = await prisma.$transaction(async tx => {
+            const tournament = await tx.tournament.findUnique({ where: { id: tournamentId } });
+            if (!tournament) throw new SettlementError(404, 'Tournament not found.');
+            if (tournament.settledAt || tournament.status === TournamentStatus.COMPLETED) {
+              throw new SettlementError(409, 'Tournament has already been settled.');
+            }
+            if (![TournamentStatus.ACTIVE, TournamentStatus.PAUSED].includes(tournament.status)) {
+              throw new SettlementError(409, 'Only active or paused tournaments can be settled.');
+            }
+            if (new Date() < tournament.endDate) {
+              throw new SettlementError(409, 'Tournament cannot settle before its end date.');
+            }
+            const participants = await tx.participant.findMany({
+              where: { tournamentId },
+              orderBy: [{ pnlPercentage: 'desc' }, { joinedAt: 'asc' }, { id: 'asc' }],
+            });
+            if (!participants.length && tournament.prizePool.greaterThan(0)) {
+              throw new SettlementError(409, 'Cannot distribute a prize pool without participants.');
+            }
+            // Conditional claim prevents any second settlement from paying twice.
+            const claimed = await tx.tournament.updateMany({
+              where: { id: tournamentId, settledAt: null, status: tournament.status },
+              data: { status: TournamentStatus.COMPLETED, settledAt: new Date() },
+            });
+            if (claimed.count !== 1) throw new SettlementError(409, 'Tournament was settled concurrently.');
+            for (let index = 0; index < participants.length; index++) {
+              const participant = participants[index];
+              await tx.participant.update({
+                where: { id: participant.id },
+                data: { rank: index + 1, prizeWon: index === 0 ? tournament.prizePool : 0 },
+              });
+            }
+            if (participants.length && tournament.prizePool.greaterThan(0)) {
+              const credited = await tx.wallet.updateMany({
+                where: { userId: participants[0].userId },
+                data: { balance: { increment: tournament.prizePool } },
+              });
+              if (credited.count !== 1) {
+                throw new SettlementError(409, 'Winner has no wallet; settlement was rolled back.');
+              }
+            }
+            return { winnerId: participants[0]?.userId ?? null, prize: tournament.prizePool.toString() };
+          }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20000 });
+          break;
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < 2) continue;
+          throw error;
+        }
+      }
+      res.status(200).json({ message: 'Tournament settled successfully.', data: result });
+    } catch (error) {
+      if (error instanceof SettlementError) {
+        res.status(error.code).json({ message: error.message }); return;
+      }
+      console.error('Tournament settlement failed:', error);
+      res.status(500).json({ message: 'Tournament settlement failed.' });
+    }
+  }
+);
 
 interface EditTournamentBody {
   title?: string;
