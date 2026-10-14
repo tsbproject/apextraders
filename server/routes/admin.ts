@@ -133,8 +133,6 @@ const formatTournament = (tournament: {
     id: tournament.id,
     title: tournament.title,
 
-    // Current Prisma schema stores Tournament.status
-    // as String, so it is validated before reaching here.
     status: tournament.status as TournamentStatus,
 
     startDate: tournament.startDate.toISOString(),
