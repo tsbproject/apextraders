@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Calendar, Users, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
+import { api } from '../services/api';
 
 export interface Tournament {
   id: string;
   title: string;
-  prizePool: number;
-  participantsCount: number;
+  prizePool: string | number;
+  _count?: { participants: number };
+  maxParticipants: number;
+  startDate: string;
+  participantsCount?: number;
   endDate: string;
   status: 'ACTIVE' | 'UPCOMING' | 'COMPLETED';
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const Tournaments: React.FC = () => {
   const [contests, setContests] = useState<Tournament[]>([]);
@@ -22,12 +25,8 @@ const Tournaments: React.FC = () => {
     let isMounted = true;
     
     // Fetch active tournaments from Prisma API
-    fetch(`${API_BASE_URL}/tournaments`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch tournaments');
-        return res.json();
-      })
-      .then((data: Tournament[]) => {
+    api.get<Tournament[]>('/tournaments')
+      .then(({ data }) => {
         if (isMounted) {
           setContests(data);
           setLoading(false);
@@ -48,28 +47,16 @@ const Tournaments: React.FC = () => {
   const handleJoin = async (tournamentId: string) => {
     setJoiningId(tournamentId);
     try {
-      const res = await fetch(`${API_BASE_URL}/tournaments/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'user_1', tournamentId }),
-      });
-
-      if (res.ok) {
-        NotifySuccess('Entry secured. See you on the Leaderboard!');
-        // Increment participant count locally for instant UI update
-        setContests((prev) =>
-          prev.map((c) =>
-            c.id === tournamentId
-              ? { ...c, participantsCount: c.participantsCount + 1 }
-              : c
-          )
-        );
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        NotifyError(errorData.message || "You're already in this race.");
-      }
-    } catch  {
-      NotifyError('Engine error: Could not process entry.');
+      await api.post('/tournaments/join', { tournamentId });
+      NotifySuccess('Entry secured. See you on the Leaderboard!');
+      setContests((prev) =>
+        prev.map((c) => c.id === tournamentId
+          ? { ...c, _count: { participants: (c._count?.participants ?? 0) + 1 } }
+          : c)
+      );
+    } catch (error: unknown) {
+      const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      NotifyError(message || 'Could not process tournament entry.');
     } finally {
       setJoiningId(null);
     }
@@ -125,6 +112,8 @@ const Tournaments: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {contests.map((item) => {
             const isJoining = joiningId === item.id;
+            const now = Date.now();
+            const isOpen = item.status === 'ACTIVE' && now >= new Date(item.startDate).getTime() && now < new Date(item.endDate).getTime();
             
             return (
               <div
@@ -139,7 +128,7 @@ const Tournaments: React.FC = () => {
 
                   <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
                     <span className="font-mono text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-400">
-                      ${item.prizePool.toLocaleString()} Prize
+                      ${Number(item.prizePool).toLocaleString()} Prize
                     </span>
                   </div>
                 </div>
@@ -152,7 +141,7 @@ const Tournaments: React.FC = () => {
                     <div className="mt-3 flex flex-wrap items-center gap-3 sm:gap-4 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <Users size={14} className="text-indigo-400" />
-                        <span>{item.participantsCount} Joined</span>
+                        <span>{item._count?.participants ?? item.participantsCount ?? 0} Joined</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar size={14} className="text-indigo-400" />
@@ -163,7 +152,7 @@ const Tournaments: React.FC = () => {
 
                   <button
                     type="button"
-                    disabled={isJoining || item.status === 'COMPLETED'}
+                    disabled={isJoining || !isOpen || joiningId !== null}
                     onClick={() => handleJoin(item.id)}
                     className="w-full py-3.5 sm:py-4 bg-white/5 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all group-hover:bg-indigo-600 group-hover:scale-[1.01] group-hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -172,8 +161,8 @@ const Tournaments: React.FC = () => {
                         <Loader2 size={18} className="animate-spin" />
                         <span>Securing Entry...</span>
                       </>
-                    ) : item.status === 'COMPLETED' ? (
-                      <span>COMPLETED</span>
+                    ) : !isOpen ? (
+                      <span>Enrollment closed</span>
                     ) : (
                       <>
                         <span>JOIN COMPETITION</span>
