@@ -18,6 +18,8 @@ import tournamentRoutes from './routes/tournament';
 import leaderboardRoutes from './routes/leaderboard';
 import profileRoutes from './routes/profile';
 import marketRoutes from './routes/market';
+import http from 'http';
+import { socketService } from './services/socketServices';
 
 dotenv.config();
 
@@ -585,6 +587,7 @@ app.use(
     error: Error,
     _req: Request,
     res: Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _next: express.NextFunction
   ) => {
     console.error(
@@ -599,12 +602,26 @@ app.use(
   }
 );
 
+
+
+// ==========================================
+// HTTP + SOCKET.IO SERVER
+// ==========================================
+
+const httpServer = http.createServer(app);
+
+// Attach Socket.IO to the same HTTP server
+socketService.init(httpServer);
+
 // ==========================================
 // SERVER START
 // ==========================================
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(
     `🚀 ApexTraders Secured API Engine running on port ${PORT}`
+  );
+  console.log(
+    `⚡ ApexTraders Socket.IO server initialized`
   );
 });

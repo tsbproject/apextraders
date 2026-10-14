@@ -1,8 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, Bell, User, Menu, X, LogIn, UserPlus } from 'lucide-react';
-import { useAppSelector } from '../../store/hooks';
+import {
+  TrendingUp,
+  TrendingDown,
+  Bell,
+  User,
+  Menu,
+  X,
+  LogIn,
+  LogOut,
+  UserPlus,
+} from 'lucide-react';
 import { AuthModalMode } from '../../App';
+import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { logout } from '../../store/authSlice';
+import { disconnectSocket } from '../../services/socket';
 
 export interface HeaderProps {
   onOpenAuth?: (mode: AuthModalMode) => void;
@@ -32,6 +45,37 @@ const Header: React.FC<HeaderProps> = ({
       );
 
 
+
+      const dispatch = useAppDispatch();
+          const navigate = useNavigate();
+
+          const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+          const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+          const handleLogout = () => {
+            disconnectSocket();
+            dispatch(logout());
+            setIsProfileMenuOpen(false);
+            navigate('/', { replace: true });
+          };
+
+
+          useEffect(() => {
+            const handleOutsideClick = (event: MouseEvent) => {
+              if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(event.target as Node)
+              ) {
+                setIsProfileMenuOpen(false);
+              }
+            };
+
+            document.addEventListener('mousedown', handleOutsideClick);
+
+            return () => {
+              document.removeEventListener('mousedown', handleOutsideClick);
+            };
+          }, []);
 
 
       
@@ -213,25 +257,74 @@ const isTrendingUp = priceDirection !== 'down';
 
             <div className="mx-1 h-5 sm:h-8 w-[1px] bg-white/10" />
 
+        
             {/* Profile */}
-            <div className="group flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2">
-              <div className="hidden flex-col text-right sm:flex">
-                <span className="text-xs font-bold text-slate-100 transition-colors group-hover:text-indigo-400">
-                  {userName}
-                </span>
-                <span className="text-[10px] font-medium uppercase tracking-tighter text-indigo-400">
-                  {userRole}
-                </span>
-              </div>
-              
-              <div className="relative">
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-[2px] shadow-lg transition-transform duration-300 group-hover:rotate-12">
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-900">
-                    <User size={16} className="text-white sm:w-[20px] sm:h-[20px]" />
-                  </div>
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsProfileMenuOpen((current) => !current)}
+                aria-label="Open profile menu"
+                aria-expanded={isProfileMenuOpen}
+                className="group flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 cursor-pointer"
+              >
+                <div className="hidden flex-col text-right sm:flex">
+                  <span className="text-xs font-bold text-slate-100 transition-colors group-hover:text-indigo-400">
+                    {userName}
+                  </span>
+
+                  <span className="text-[10px] font-medium uppercase tracking-tighter text-indigo-400">
+                    {userRole}
+                  </span>
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border-2 border-slate-950 bg-emerald-500"></div>
-              </div>
+
+                <div className="relative">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-[2px] shadow-lg transition-transform duration-300 group-hover:rotate-12">
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-900">
+                      <User
+                        size={16}
+                        className="text-white sm:w-[20px] sm:h-[20px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border-2 border-slate-950 bg-emerald-500" />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isProfileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-3 w-52 overflow-hidden rounded-xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/30"
+                  >
+                    {/* User summary */}
+                    <div className="border-b border-white/5 px-4 py-3">
+                      <p className="truncate text-sm font-bold text-white">
+                        {userName}
+                      </p>
+
+                      <p className="truncate text-[11px] text-slate-500">
+                        {user?.email}
+                      </p>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="p-1.5">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300 cursor-pointer"
+                      >
+                        <LogOut size={16} />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </>
         ) : (

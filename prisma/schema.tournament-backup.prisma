@@ -1,0 +1,143 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+
+  output = "../server/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RankTier {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+  ELITE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String // Required for secure JWT authentication
+  role         Role     @default(USER)
+  rankTier     RankTier @default(BRONZE)
+  bio          String?  @db.VarChar(160)
+  avatarUrl    String?
+
+  wallet       Wallet?
+  trades       Trade[]
+  participants Participant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Wallet {
+  id              String  @id @default(uuid())
+  balance         Decimal @default(0.00) @db.Decimal(18, 8)
+  metamaskAddress String?
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String  @unique
+
+  @@map("wallets")
+}
+
+model Trade {
+  id            String   @id @default(uuid())
+  symbol        String
+  side          String
+  entryPrice    Decimal  @db.Decimal(18, 8)
+  exitPrice     Decimal? @db.Decimal(18, 8)
+  pnlPercentage Decimal? @db.Decimal(10, 4)
+  status        String   @default("OPEN")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  tournamentId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("trades")
+}
+
+enum TournamentStatus {
+  UPCOMING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model Tournament {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+
+  startDate DateTime
+  endDate   DateTime
+
+  // Cost deducted from demo balance when joining
+  entryFee Decimal @default(0) @db.Decimal(18, 8)
+
+  // Total demo-credit prize pool
+  prizePool Decimal @default(0) @db.Decimal(18, 8)
+
+  // Maximum number of competitors
+  maxParticipants Int @default(100)
+
+  status TournamentStatus @default(UPCOMING)
+
+  participants Participant[]
+
+  // Prevent accidental/double settlement
+  settledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("tournaments")
+}
+
+model Participant {
+  id           String @id @default(cuid())
+  userId       String
+  tournamentId String
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Tournament-only account
+  startingBalance Decimal @default(10000) @db.Decimal(18, 8)
+  currentBalance  Decimal @default(10000) @db.Decimal(18, 8)
+
+  pnlPercentage Decimal @default(0) @db.Decimal(10, 4)
+
+  rank Int?
+
+  // Amount awarded when tournament settles
+  prizeWon Decimal @default(0) @db.Decimal(18, 8)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, tournamentId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("participants")
+}

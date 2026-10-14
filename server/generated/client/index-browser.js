@@ -159,9 +159,13 @@ exports.Prisma.TournamentScalarFieldEnum = {
   description: 'description',
   startDate: 'startDate',
   endDate: 'endDate',
+  entryFee: 'entryFee',
   prizePool: 'prizePool',
+  maxParticipants: 'maxParticipants',
   status: 'status',
-  createdAt: 'createdAt'
+  settledAt: 'settledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ParticipantScalarFieldEnum = {
@@ -172,6 +176,7 @@ exports.Prisma.ParticipantScalarFieldEnum = {
   currentBalance: 'currentBalance',
   pnlPercentage: 'pnlPercentage',
   rank: 'rank',
+  prizeWon: 'prizeWon',
   joinedAt: 'joinedAt'
 };
 
@@ -201,6 +206,14 @@ exports.RankTier = exports.$Enums.RankTier = {
   GOLD: 'GOLD',
   DIAMOND: 'DIAMOND',
   ELITE: 'ELITE'
+};
+
+exports.TournamentStatus = exports.$Enums.TournamentStatus = {
+  UPCOMING: 'UPCOMING',
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
 };
 
 exports.Prisma.ModelName = {

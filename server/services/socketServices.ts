@@ -1,6 +1,6 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { verifyToken, JwtPayload } from '../../server/lib/auth';
+import { verifyToken, JwtPayload } from '../lib/auth';
 
 interface BalanceUpdatePayload {
   userId: string;
