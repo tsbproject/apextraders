@@ -45,6 +45,11 @@ export interface TournamentAdminDTO {
   endDate: string;
   createdAt: string;
   participantCount: number;
+  description: string | null;
+  entryFee: number;
+  prizePool: number;
+  maxParticipants: number;
+  settledAt: string | null;
 }
 
 export interface UpdateRoleParams
@@ -61,6 +66,10 @@ export interface CreateTournamentBody {
   startDate: string;
   endDate: string;
   status?: TournamentStatus;
+  description?: string;
+  entryFee?: number;
+  prizePool?: number;
+  maxParticipants?: number;
 }
 
 export interface UpdateTournamentStatusParams
@@ -125,6 +134,11 @@ const formatTournament = (tournament: {
   startDate: Date;
   endDate: Date;
   createdAt: Date;
+  description: string | null;
+  entryFee: unknown;
+  prizePool: unknown;
+  maxParticipants: number;
+  settledAt: Date | null;
   _count: {
     participants: number;
   };
@@ -139,6 +153,11 @@ const formatTournament = (tournament: {
     endDate: tournament.endDate.toISOString(),
     createdAt: tournament.createdAt.toISOString(),
     participantCount: tournament._count.participants,
+    description: tournament.description,
+    entryFee: Number(tournament.entryFee),
+    prizePool: Number(tournament.prizePool),
+    maxParticipants: tournament.maxParticipants,
+    settledAt: tournament.settledAt?.toISOString() ?? null,
   };
 };
 
@@ -315,10 +334,10 @@ router.patch(
       // 4. COMPLETED is terminal
       // ==========================================
 
-      if (currentStatus === TournamentStatus.COMPLETED) {
+      if (currentStatus === TournamentStatus.COMPLETED || currentStatus === TournamentStatus.CANCELLED) {
         res.status(409).json({
           message:
-            'Completed tournaments are locked and cannot be reactivated, paused, or rescheduled.',
+            'Completed or cancelled tournaments are locked.',
         });
         return;
       }
@@ -344,7 +363,7 @@ router.patch(
       > = {
         [TournamentStatus.UPCOMING]: [
           TournamentStatus.ACTIVE,
-          TournamentStatus.COMPLETED,
+          TournamentStatus.CANCELLED,
         ],
 
         [TournamentStatus.ACTIVE]: [
@@ -358,6 +377,7 @@ router.patch(
         ],
 
         [TournamentStatus.COMPLETED]: [],
+        [TournamentStatus.CANCELLED]: [],
       };
 
       if (!allowedTransitions[currentStatus].includes(status)) {
@@ -523,6 +543,10 @@ router.post(
       startDate,
       endDate,
       status,
+      description,
+      entryFee = 0,
+      prizePool = 0,
+      maxParticipants = 100,
     } = req.body;
 
     // ------------------------------------------
@@ -569,6 +593,14 @@ router.post(
       return;
     }
 
+    if (typeof entryFee !== 'number' || !Number.isFinite(entryFee) || entryFee < 0 ||
+        typeof prizePool !== 'number' || !Number.isFinite(prizePool) || prizePool < 0 ||
+        !Number.isSafeInteger(maxParticipants) || maxParticipants < 1 ||
+        (description !== undefined && typeof description !== 'string')) {
+      res.status(400).json({ message: 'Invalid tournament configuration.' });
+      return;
+    }
+
     // ------------------------------------------
     // Validate optional status
     // ------------------------------------------
@@ -584,18 +616,23 @@ router.post(
       return;
     }
 
+    if (status !== undefined && status !== TournamentStatus.UPCOMING) {
+      res.status(400).json({ message: 'New tournaments must start as UPCOMING.' });
+      return;
+    }
+
     try {
       const newTournament =
         await prisma.tournament.create({
           data: {
             title,
+            description: description?.trim() || null,
             startDate: parsedStartDate,
             endDate: parsedEndDate,
-
-            // Current schema stores this as String.
-            status:
-              status ??
-              TournamentStatus.UPCOMING,
+            entryFee,
+            prizePool,
+            maxParticipants,
+            status: TournamentStatus.UPCOMING,
           },
 
           include: {
@@ -629,5 +666,76 @@ router.post(
 );
 
 
+
+
+interface EditTournamentBody {
+  title?: string;
+  description?: string | null;
+  startDate?: string;
+  endDate?: string;
+  entryFee?: number;
+  prizePool?: number;
+  maxParticipants?: number;
+}
+
+// Editing is restricted to upcoming tournaments to protect existing entries.
+router.patch(
+  '/tournaments/:tournamentId',
+  authorizeRoles(Role.ADMIN, Role.SUPER_ADMIN) as RequestHandler,
+  async (req: CustomAdminRequest<UpdateTournamentStatusParams, unknown, EditTournamentBody>, res: Response): Promise<void> => {
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      res.status(400).json({ message: 'Invalid request body.' }); return;
+    }
+    const keys = Object.keys(body);
+    const allowed = ['title','description','startDate','endDate','entryFee','prizePool','maxParticipants'];
+    if (!keys.length || keys.some(key => !allowed.includes(key))) {
+      res.status(400).json({ message: 'Invalid or empty tournament update.' }); return;
+    }
+    const { title, description, startDate, endDate, entryFee, prizePool, maxParticipants } = body;
+    if ((title !== undefined && (typeof title !== 'string' || !title.trim())) ||
+        (description !== undefined && description !== null && typeof description !== 'string') ||
+        (entryFee !== undefined && (typeof entryFee !== 'number' || !Number.isFinite(entryFee) || entryFee < 0)) ||
+        (prizePool !== undefined && (typeof prizePool !== 'number' || !Number.isFinite(prizePool) || prizePool < 0)) ||
+        (maxParticipants !== undefined && (!Number.isSafeInteger(maxParticipants) || maxParticipants < 1))) {
+      res.status(400).json({ message: 'Invalid tournament fields.' }); return;
+    }
+    const start = startDate === undefined ? undefined : new Date(startDate);
+    const end = endDate === undefined ? undefined : new Date(endDate);
+    if ((start && Number.isNaN(start.getTime())) || (end && Number.isNaN(end.getTime()))) {
+      res.status(400).json({ message: 'Invalid dates.' }); return;
+    }
+    try {
+      const existing = await prisma.tournament.findUnique({
+        where: { id: req.params.tournamentId },
+        include: { _count: { select: { participants: true } } },
+      });
+      if (!existing) { res.status(404).json({ message: 'Tournament not found.' }); return; }
+      if (existing.status !== TournamentStatus.UPCOMING || existing._count.participants > 0) {
+        res.status(409).json({ message: 'Only upcoming tournaments with no participants can be edited.' }); return;
+      }
+      if ((end ?? existing.endDate) <= (start ?? existing.startDate)) {
+        res.status(400).json({ message: 'End date must be after start date.' }); return;
+      }
+      const updated = await prisma.tournament.update({
+        where: { id: existing.id, status: TournamentStatus.UPCOMING },
+        data: {
+          ...(title !== undefined ? { title: title.trim() } : {}),
+          ...(description !== undefined ? { description: description?.trim() || null } : {}),
+          ...(start ? { startDate: start } : {}),
+          ...(end ? { endDate: end } : {}),
+          ...(entryFee !== undefined ? { entryFee } : {}),
+          ...(prizePool !== undefined ? { prizePool } : {}),
+          ...(maxParticipants !== undefined ? { maxParticipants } : {}),
+        },
+        include: { _count: { select: { participants: true } } },
+      });
+      res.json({ message: 'Tournament updated.', data: formatTournament(updated) });
+    } catch (error) {
+      console.error('Tournament edit error:', error);
+      res.status(500).json({ message: 'Failed to update tournament.' });
+    }
+  }
+);
 
 export default router;
