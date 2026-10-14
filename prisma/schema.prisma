@@ -60,6 +60,8 @@ model Trade {
   entryPrice    Decimal  @db.Decimal(18, 8)
   exitPrice     Decimal? @db.Decimal(18, 8)
   pnlPercentage Decimal? @db.Decimal(10, 4)
+  allocatedCapital Decimal? @db.Decimal(18, 8)
+  realizedPnl Decimal? @db.Decimal(18, 8)
   status        String   @default("OPEN")
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
