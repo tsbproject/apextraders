@@ -6,45 +6,55 @@ const router = Router();
 
 // Historical BTC/USDT candles from Kraken's public OHLC feed.
 // This feed is independent of the Quidax live ticker; label the source explicitly.
+// Quidax-only candle proxy. The public /k route is a candidate and must
+// be confirmed against a live response before chart availability is promised.
 router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Response> => {
   const interval = Number(req.query.interval ?? 5);
   if (![1, 5, 15, 60, 240, 1440].includes(interval)) {
     return res.status(400).json({ message: 'Unsupported candle interval.' });
   }
   try {
-    const url = new URL('https://api.kraken.com/0/public/OHLC');
-    url.searchParams.set('pair', 'XBTUSDT');
-    url.searchParams.set('interval', String(interval));
-    console.info('[Market candles] Requesting Kraken OHLC', { interval, host: url.hostname });
-    const upstream = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'ApexTraders/1.0' }, signal: AbortSignal.timeout(15000) });
+    const url = new URL('https://openapi.quidax.io/exchange-open-api/api/v1/markets/btcusdt/k');
+    url.searchParams.set('period', String(interval));
+    url.searchParams.set('limit', '100');
+    const upstream = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'ApexTraders/1.0' },
+      signal: AbortSignal.timeout(15000),
+    });
     if (!upstream.ok) {
-      console.error('[Market candles] Kraken HTTP status:', upstream.status);
-      return res.status(502).json({ message: 'Historical market provider unavailable.' });
+      console.error('[Market candles] Quidax HTTP status:', upstream.status);
+      return res.status(502).json({ message: 'Quidax candle endpoint unavailable.', upstreamStatus: upstream.status });
     }
-    const payload = await upstream.json() as { error?: string[]; result?: Record<string, unknown> };
-    if (payload.error?.length || !payload.result) {
-      console.error('[Market candles] Kraken API response errors:', payload.error);
-      return res.status(502).json({ message: 'Historical market data unavailable.' });
+    const payload: unknown = await upstream.json();
+    const envelope = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+    const raw = Array.isArray(payload) ? payload : Array.isArray(envelope.data) ? envelope.data : null;
+    if (!raw) {
+      console.error('[Market candles] Quidax unexpected response shape:', Object.keys(envelope));
+      return res.status(502).json({ message: 'Quidax candle format not yet supported.' });
     }
-    const key = Object.keys(payload.result).find(k => k !== 'last');
-    const rows = key ? payload.result[key] : null;
-    if (!Array.isArray(rows)) return res.status(502).json({ message: 'Unexpected historical data format.' });
-    const candles = rows.slice(-100).map((r: unknown) => {
-      if (!Array.isArray(r)) return null;
-      const [time, open, high, low, close, , volume] = r;
-      const candle = { time: Number(time) * 1000, open: Number(open), high: Number(high), low: Number(low), close: Number(close), volume: Number(volume) };
-      return Object.values(candle).every(Number.isFinite) && candle.high >= candle.low && candle.open > 0 && candle.close > 0 ? candle : null;
+    // Reject unknown candle structures instead of inventing price or volume data.
+    const candles = raw.map((row: unknown) => {
+      if (!row || typeof row !== 'object') return null;
+      const item = row as Record<string, unknown>;
+      const time = Number(item.time ?? item.timestamp ?? item.at);
+      const open = Number(item.open), high = Number(item.high), low = Number(item.low);
+      const close = Number(item.close), volume = Number(item.volume ?? item.vol);
+      const timestamp = time < 1e11 ? time * 1000 : time;
+      if (![timestamp, open, high, low, close, volume].every(Number.isFinite) ||
+          open <= 0 || close <= 0 || high < Math.max(open, close) ||
+          low > Math.min(open, close) || volume < 0) return null;
+      return { time: timestamp, open, high, low, close, volume };
     }).filter((c): c is {time:number;open:number;high:number;low:number;close:number;volume:number} => c !== null);
-    console.info('[Market candles] Loaded candles:', candles.length);
-    return res.json({ symbol: 'BTC/USDT', provider: 'kraken', interval, candles });
+    if (!candles.length) {
+      console.error('[Market candles] Quidax returned no recognizable candles; sample:', JSON.stringify(raw[0]).slice(0, 350));
+      return res.status(502).json({ message: 'Quidax candle structure requires verification.' });
+    }
+    return res.json({ symbol: 'BTC/USDT', provider: 'quidax', interval, candles: candles.sort((x,y) => x.time-y.time) });
   } catch (error) {
-    const cause = error instanceof Error ? (error as Error & { cause?: unknown }).cause : undefined;
-    console.error('[Market candles] Request failed:', { name: error instanceof Error ? error.name : 'Unknown', message: error instanceof Error ? error.message : String(error), cause });
-    return res.status(502).json({ message: 'Historical market data temporarily unavailable.' });
+    console.error('[Market candles] Quidax request failed:', error);
+    return res.status(502).json({ message: 'Quidax historical market data temporarily unavailable.' });
   }
 });
-
-
 
 const QUIDAX_BASE_URL =
   'https://openapi.quidax.io/exchange-open-api/api/v1';
