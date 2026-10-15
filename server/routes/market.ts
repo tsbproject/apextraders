@@ -15,10 +15,17 @@ router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Resp
     const url = new URL('https://api.kraken.com/0/public/OHLC');
     url.searchParams.set('pair', 'XBTUSDT');
     url.searchParams.set('interval', String(interval));
-    const upstream = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
-    if (!upstream.ok) return res.status(502).json({ message: 'Historical market provider unavailable.' });
+    console.info('[Market candles] Requesting Kraken OHLC', { interval, host: url.hostname });
+    const upstream = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'ApexTraders/1.0' }, signal: AbortSignal.timeout(15000) });
+    if (!upstream.ok) {
+      console.error('[Market candles] Kraken HTTP status:', upstream.status);
+      return res.status(502).json({ message: 'Historical market provider unavailable.' });
+    }
     const payload = await upstream.json() as { error?: string[]; result?: Record<string, unknown> };
-    if (payload.error?.length || !payload.result) return res.status(502).json({ message: 'Historical market data unavailable.' });
+    if (payload.error?.length || !payload.result) {
+      console.error('[Market candles] Kraken API response errors:', payload.error);
+      return res.status(502).json({ message: 'Historical market data unavailable.' });
+    }
     const key = Object.keys(payload.result).find(k => k !== 'last');
     const rows = key ? payload.result[key] : null;
     if (!Array.isArray(rows)) return res.status(502).json({ message: 'Unexpected historical data format.' });
@@ -28,9 +35,11 @@ router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Resp
       const candle = { time: Number(time) * 1000, open: Number(open), high: Number(high), low: Number(low), close: Number(close), volume: Number(volume) };
       return Object.values(candle).every(Number.isFinite) && candle.high >= candle.low && candle.open > 0 && candle.close > 0 ? candle : null;
     }).filter((c): c is {time:number;open:number;high:number;low:number;close:number;volume:number} => c !== null);
+    console.info('[Market candles] Loaded candles:', candles.length);
     return res.json({ symbol: 'BTC/USDT', provider: 'kraken', interval, candles });
   } catch (error) {
-    console.error('Historical candle feed error:', error);
+    const cause = error instanceof Error ? (error as Error & { cause?: unknown }).cause : undefined;
+    console.error('[Market candles] Request failed:', { name: error instanceof Error ? error.name : 'Unknown', message: error instanceof Error ? error.message : String(error), cause });
     return res.status(502).json({ message: 'Historical market data temporarily unavailable.' });
   }
 });
