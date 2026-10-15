@@ -55,8 +55,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setRecoveryMessage(response.data.message);
       if (isReset) {
         window.history.replaceState({}, '', window.location.pathname);
-        setRecoveryMode('forgot');
+        setRecoveryMode(null);
         setResetPassword('');
+        notifySuccess('Password reset successfully. Please sign in with your new password.');
       }
     } catch (error: any) {
       setRecoveryMessage(error?.response?.data?.message || 'Unable to process the request. Please try again.');
