@@ -222,6 +222,22 @@ interface CloseTradeBody {
   exitPrice: number;
 }
 
+// Authenticated trade journal: never expose other users' positions.
+app.get('/api/trades/mine', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) return res.status(401).json({ message: 'Authentication required.' });
+  try {
+    const trades = await prisma.trade.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 150,
+    });
+    return res.json(trades);
+  } catch (error) {
+    console.error('Trade journal error:', error);
+    return res.status(500).json({ message: 'Unable to load trade journal.' });
+  }
+});
+
 // ==========================================
 // OPEN TRADE
 // POST /api/trades/open
