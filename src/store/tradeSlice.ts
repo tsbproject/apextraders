@@ -12,6 +12,8 @@ export interface Trade {
   symbol: string;
   side: TradeSide;
   entryPrice: number;
+  tournamentId?: string | null;
+  allocatedCapital?: number | null;
   exitPrice?: number;
   pnlPercentage?: number;
   status: TradeStatus;
@@ -24,6 +26,7 @@ export interface OpenTradePayload {
   side: TradeSide;
   entryPrice: number;
   tournamentId?: string;
+  allocatedCapital?: number;
 }
 
 export interface CloseTradePayload {
