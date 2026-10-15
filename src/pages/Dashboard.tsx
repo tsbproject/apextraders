@@ -53,6 +53,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => { void refreshAccounts(); }, []);
   const selectedAccount = accounts.find(a => a.tournamentId === selectedTournamentId);
   const activeAccount = selectedAccount && Date.now() >= new Date(selectedAccount.startDate).getTime() && Date.now() < new Date(selectedAccount.endDate).getTime();
+  const orderDisabled = isExecuting || !btcPrice || (Boolean(selectedTournamentId) && !activeAccount);
 
   const [amount, setAmount] =
     useState<string>('1000');
@@ -157,18 +158,18 @@ const Dashboard: React.FC = () => {
         </section>
 
         {/* Execution Desk Card */}
-        <section className="rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/50 p-4 sm:p-6 backdrop-blur-xl">
-          <div className="mb-4 sm:mb-6 flex items-center gap-2 text-indigo-400">
+        <section className="rounded-2xl border border-white/10 bg-[#111b2c] p-5 sm:p-6 shadow-xl">
+          <div className="mb-5 flex items-center justify-between gap-3 text-indigo-400"><div className="flex items-center gap-2">
             <Activity size={18} />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
               Execution Desk
-            </h3>
+            </h3></div><span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold text-slate-400">DEMO</span>
           </div>
 
           <div className="space-y-4">
             <div>
               <label htmlFor="trade-tournament" className="ml-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Trading account</label>
-              <select id="trade-tournament" value={selectedTournamentId} onChange={e => setSelectedTournamentId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white">
+              <select id="trade-tournament" value={selectedTournamentId} onChange={e => setSelectedTournamentId(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#080e1c] p-3.5 text-sm text-white outline-none focus:border-indigo-400/60">
                 <option value="">General demo (non-tournament)</option>
                 {accounts.map(a => <option key={a.tournamentId} value={a.tournamentId}>{a.title}</option>)}
               </select>
@@ -190,7 +191,7 @@ const Dashboard: React.FC = () => {
                   placeholder="1000"
                   min="0.01"
                   step="0.01"
-                  className="w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 py-3.5 pl-10 pr-4 font-mono text-sm text-white outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
+                  className="w-full rounded-xl border border-white/10 bg-[#080e1c] py-3.5 pl-10 pr-4 font-mono text-sm text-white outline-none transition-all focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/20"
                 />
               </div>
             </div>
@@ -199,7 +200,7 @@ const Dashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleTrade('BUY')}
-                disabled={isExecuting || !btcPrice || (Boolean(selectedTournamentId) && !activeAccount)}
+                disabled={orderDisabled}
                 className="flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-500 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 transition-all hover:bg-emerald-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.2)]"
               >
                 {isExecuting ? (
@@ -212,7 +213,7 @@ const Dashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleTrade('SELL')}
-                disabled={isExecuting || !btcPrice}
+                disabled={orderDisabled}
                 className="flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-rose-500 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-rose-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(244,63,94,0.2)]"
               >
                 {isExecuting ? (
@@ -222,21 +223,22 @@ const Dashboard: React.FC = () => {
                 )}
               </button>
             </div>
+            <p className="text-[11px] leading-relaxed text-slate-500">Simulated positions only. Orders require a live Quidax price; tournament orders are available during the tournament trading window.</p>
           </div>
         </section>
 
         {/* Demo Balance Card */}
-        <div className="rounded-2xl sm:rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-600 to-slate-900 p-5 sm:p-6 shadow-xl shadow-indigo-500/10">
+        <div className="rounded-2xl border border-indigo-400/20 bg-gradient-to-br from-[#273b69] via-[#19294a] to-[#111b2c] p-5 sm:p-6 shadow-xl">
           <div className="mb-3 flex items-center gap-2">
             <div className="rounded-lg bg-white/20 p-2">
               <Wallet size={18} className="text-white" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
-              Demo Balance
+              Tournament account balance
             </span>
           </div>
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/60">
-            Buying Power
+            Available demo credits
           </p>
           <h2 className="font-mono text-xl sm:text-2xl font-black text-white mt-1 break-words">
             {selectedAccount ? `${Number(selectedAccount.currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} credits` : 'Select a tournament account'}
