@@ -69,7 +69,7 @@ const MarketTerminal: React.FC<Props> = ({ price, status, lastUpdated }) => {
     <div className="relative mx-4 mt-4 h-72 overflow-hidden rounded-xl border border-white/5 bg-slate-950/70 sm:h-96">
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-5 opacity-35">{[0,1,2,3,4,5].map(i => <div key={i} className="border-t border-dashed border-slate-700" />)}</div>
       {data.length ? <div className="absolute inset-3">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label="Kraken historical BTC USDT candlestick chart with volume and moving averages">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full" role="img" aria-label="Quidax historical BTC USDT candlestick chart with volume and moving averages">
           {data.map((c, i) => { const x = (i + .5) * 100 / data.length; const green = c.close >= c.open; const color = green ? '#34d399' : '#fb7185'; const top = y(Math.max(c.open,c.close)); const bottom = y(Math.min(c.open,c.close)); const body = Math.max(bottom-top, .35); const width = 72 / data.length; return <g key={c.time}><line x1={x} x2={x} y1={y(c.high)} y2={y(c.low)} stroke={color} strokeWidth=".18"/><rect x={x-width/2} y={top} width={width} height={body} fill={color} rx=".08"/><rect x={x-width/2} y={96-(c.volume/bounds.maxVolume)*17} width={width} height={(c.volume/bounds.maxVolume)*17} fill={color} opacity=".45"/></g>; })}
           {data.length >= 9 && <polyline points={plotMA(9)} fill="none" stroke="#fbbf24" strokeWidth=".34" strokeLinejoin="round" opacity=".95"/>}
           {data.length >= 21 && <polyline points={plotMA(21)} fill="none" stroke="#a78bfa" strokeWidth=".34" strokeLinejoin="round" opacity=".95"/>}
@@ -80,7 +80,7 @@ const MarketTerminal: React.FC<Props> = ({ price, status, lastUpdated }) => {
         <div className="pointer-events-none absolute bottom-1 left-2 flex gap-3 text-[10px]"><span className="text-amber-300">━ MA 9</span><span className="text-violet-300">━ MA 21</span><span className="text-slate-500">▥ Volume</span></div>
       </div> : <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center"><Activity size={30} className="text-indigo-400/50"/><p className="text-sm text-slate-300">{loading ? 'Loading authentic market candles…' : error || 'No candle data available'}</p></div>}
     </div>
-    <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-[10px] text-slate-500"><span>Historical candles: Kraken · Live ticker: Quidax · Prices may differ between exchanges</span><span>{lastUpdated ? `Ticker updated ${new Date(lastUpdated).toLocaleTimeString()}` : 'Awaiting ticker'}</span></div>
+    <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-[10px] text-slate-500"><span>Historical candles and live ticker: Quidax · Candle availability subject to provider API</span><span>{lastUpdated ? `Ticker updated ${new Date(lastUpdated).toLocaleTimeString()}` : 'Awaiting ticker'}</span></div>
   </section>;
 };
 export default MarketTerminal;
