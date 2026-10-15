@@ -17,6 +17,7 @@ import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
 import CurrentRank from '../_components/CurrentRank';
 import MarketTerminal from '../_components/MarketTerminal';
+import TradingActivity from '../_components/TradingActivity';
 import { api } from '../services/api';
 
 const Dashboard: React.FC = () => {
@@ -54,6 +55,7 @@ const Dashboard: React.FC = () => {
   const [isExecuting, setIsExecuting] =
     useState<boolean>(false);
 
+  const [activityVersion, setActivityVersion] = useState(0);
   const [closingId, setClosingId] =
     useState<string | null>(null);
 
@@ -92,6 +94,7 @@ const Dashboard: React.FC = () => {
         
 
       await refreshAccounts();
+      setActivityVersion(v => v + 1);
       NotifySuccess(
         `${side} Order Filled at $${btcPrice.toLocaleString(undefined, {
           minimumFractionDigits: 2,
@@ -123,6 +126,7 @@ const Dashboard: React.FC = () => {
         ? result.pnlPercentage.toFixed(2)
         : '0.00';
       await refreshAccounts();
+      setActivityVersion(v => v + 1);
       NotifySuccess(`Position Settled! Final PnL: ${finalPnL}%`);
     } catch  {
       NotifyError('Database Error: Settlement could not be saved.');
@@ -235,118 +239,7 @@ const Dashboard: React.FC = () => {
       {/* ========================================================= */}
       <div className="lg:col-span-8 space-y-4 sm:space-y-6">
         <MarketTerminal price={btcPrice} status={priceStatus} lastUpdated={lastPriceUpdate} />
-        <div className="min-h-[250px] sm:min-h-[400px] rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/30 backdrop-blur-md overflow-hidden">
-          
-          <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-6">
-            <div className="flex items-center gap-2 text-slate-400">
-              <History size={18} className="text-indigo-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Live Exposure
-              </h3>
-            </div>
-            <span className="rounded-full bg-white/5 px-2.5 py-1 font-mono text-[10px] font-bold text-slate-400">
-              {trades.length} Open Position{trades.length === 1 ? '' : 's'}
-            </span>
-          </div>
-
-          <div className="p-3 sm:p-4">
-            <AnimatePresence initial={false}>
-              {trades.length > 0 ? (
-                trades.map((trade) => {
-                  const pnl = btcPrice
-                    ? calculatePnL(Number(trade.entryPrice), btcPrice, trade.side)
-                    : 0;
-                  const isProfit = pnl >= 0;
-                  const isBuy = trade.side === 'BUY';
-                  const isClosing = closingId === trade.id;
-
-                  return (
-                    <motion.div
-                      key={trade.id}
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, x: -10 }}
-                      className="group mb-3 flex items-center justify-between rounded-xl sm:rounded-2xl border border-white/5 bg-white/[0.02] p-3 sm:p-4 transition-all hover:bg-white/[0.04]"
-                    >
-                      {/* Left: Trade Symbol & Side */}
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`rounded-xl p-2 ${
-                            isBuy
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : 'bg-rose-500/10 text-rose-400'
-                          }`}
-                        >
-                          {isBuy ? (
-                            <ArrowUpCircle size={20} />
-                          ) : (
-                            <ArrowDownCircle size={20} />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-xs sm:text-sm font-bold text-white leading-none">
-                            {trade.symbol}
-                          </p>
-                          {trade.tournamentId && <p className="mt-1 text-[10px] text-indigo-300">Tournament position · {Number(trade.allocatedCapital ?? 0).toFixed(2)} credits</p>}
-                          <p className="mt-1 font-mono text-[10px] text-slate-400">
-                            Entry: ${Number(trade.entryPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Right: Live PnL & Settlement Action */}
-                      <div className="flex items-center gap-4 sm:gap-6 text-right">
-                        <div>
-                          <div className="flex items-center justify-end gap-1">
-                            {isProfit && (
-                              <TrendingUp size={14} className="text-emerald-400" />
-                            )}
-                            <p
-                              className={`font-mono text-xs sm:text-sm font-black ${
-                                isProfit ? 'text-emerald-400' : 'text-rose-400'
-                              }`}
-                            >
-                              {isProfit ? '+' : ''}
-                              {pnl.toFixed(2)}%
-                            </p>
-                          </div>
-                          <p className="text-[9px] font-black uppercase tracking-tight text-slate-500">
-                            Live PnL
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          disabled={isClosing}
-                          onClick={() => handleClosePosition(trade.id)}
-                          title="Settle Position"
-                          className="text-slate-500 transition-colors hover:text-rose-400 disabled:opacity-50"
-                        >
-                          {isClosing ? (
-                            <Loader2 size={20} className="animate-spin text-rose-400" />
-                          ) : (
-                            <XCircle size={20} />
-                          )}
-                        </button>
-                      </div>
-                    </motion.div>
-                  );
-                })
-              ) : (
-                <div className="py-20 text-center">
-                  <Activity
-                    size={32}
-                    className="mx-auto mb-3 text-slate-700"
-                  />
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                    Market Neutral - No Open Positions
-                  </p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-        </div>
+        <TradingActivity onClose={handleClosePosition} closingId={closingId} refreshKey={activityVersion} />
       </div>
 
     </div>
