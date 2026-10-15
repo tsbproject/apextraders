@@ -383,7 +383,10 @@ app.post(
       // Database: Trade.userId
       // ------------------------------------------
 
-      const newTrade = await prisma.$transaction(async tx => {
+      let newTrade;
+      for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+      newTrade = await prisma.$transaction(async tx => {
         if (tournamentId) {
           const tournament = await tx.tournament.findUnique({ where: { id: tournamentId } });
           const now = new Date();
@@ -410,6 +413,12 @@ app.post(
           },
         });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      break;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < 2) continue;
+        throw error;
+      }
+      }
       return res.status(201).json(newTrade);
     } catch (error: unknown) {
       if (error instanceof Error && ['TOURNAMENT_CLOSED', 'NOT_ENROLLED', 'INSUFFICIENT_CAPITAL'].includes(error.message)) {
@@ -558,7 +567,10 @@ app.post(
       // Close trade
       // ------------------------------------------
 
-      const closedTrade = await prisma.$transaction(async tx => {
+      let closedTrade;
+      for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+      closedTrade = await prisma.$transaction(async tx => {
         const updated = await tx.trade.updateMany({
           where: { id: tradeId, userId, status: 'OPEN' },
           data: {
@@ -573,7 +585,7 @@ app.post(
         if (updated.count !== 1) throw new Error('TRADE_ALREADY_CLOSED');
         if (trade.tournamentId) {
           const tournament = await tx.tournament.findUnique({ where: { id: trade.tournamentId } });
-          if (!tournament || tournament.status !== 'ACTIVE' || new Date() >= tournament.endDate) {
+          if (!tournament || !['ACTIVE', 'PAUSED'].includes(tournament.status) || tournament.settledAt) {
             throw new Error('TOURNAMENT_CLOSED');
           }
           if (!trade.allocatedCapital) throw new Error('MISSING_ALLOCATION');
@@ -593,6 +605,12 @@ app.post(
         }
         return tx.trade.findUniqueOrThrow({ where: { id: tradeId } });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      break;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034' && attempt < 2) continue;
+        throw error;
+      }
+      }
       return res.status(200).json(
         closedTrade
       );
