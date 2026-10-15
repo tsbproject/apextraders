@@ -5,8 +5,6 @@ import { TrendingUp, TrendingDown, PieChart, Award, History, Filter } from 'luci
 
 export type PortfolioScopeFilter = 'ALL' | 'TOURNAMENT';
 
-const ACTIVE_TOURNAMENT_ID = 'weekly-apex-challenge';
-
 const Portfolio: React.FC = () => {
   // 1. Pull positions from Redux
   const allTrades = useAppSelector((state) => state.trades.positions);
@@ -18,7 +16,7 @@ const Portfolio: React.FC = () => {
   const filteredTrades = allTrades.filter((t) => {
     if (filter === 'ALL') return t.status === 'CLOSED';
     // Matches trades for the specific active tournament
-    return t.status === 'CLOSED' && t.tournamentId === ACTIVE_TOURNAMENT_ID;
+    return t.status === 'CLOSED' && Boolean(t.tournamentId);
   });
 
   // 4. Aggregate Performance Stats based on filtered results
@@ -40,6 +38,17 @@ const Portfolio: React.FC = () => {
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 select-none">
       
+      <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#121f34] via-[#101b2d] to-[#0b1324] p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-300">Trading workspace / Portfolio</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Portfolio overview</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-400">Review settled demo positions and performance across your trading activity.</p>
+          </div>
+          <div className="rounded-xl border border-indigo-400/20 bg-indigo-400/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-indigo-200">Demo performance</div>
+        </div>
+      </section>
+
       {/* ========================================================= */}
       {/* 1. FILTER NAVIGATION                                       */}
       {/* ========================================================= */}
@@ -51,7 +60,7 @@ const Portfolio: React.FC = () => {
           </h2>
         </div>
 
-        <div className="flex w-full sm:w-auto bg-slate-900/50 p-1 rounded-xl border border-white/5 shadow-inner">
+        <div className="flex w-full sm:w-auto bg-[#101b2d] p-1 rounded-xl border border-white/10 shadow-inner">
           <button
             type="button"
             onClick={() => setFilter('ALL')}
@@ -86,7 +95,7 @@ const Portfolio: React.FC = () => {
           key={`pnl-${filter}`}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/50 p-5 sm:p-6 backdrop-blur-xl"
+          className="rounded-2xl sm:rounded-3xl border border-white/5 bg-[#111b2c] p-5 sm:p-6 shadow-lg"
         >
           <div className="flex items-center gap-2.5 mb-3 text-indigo-400">
             {isPositiveHistoricalPnL ? (
@@ -95,7 +104,7 @@ const Portfolio: React.FC = () => {
               <TrendingDown size={20} className="text-rose-400" />
             )}
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Net Profit / Loss
+              Sum of Trade Returns
             </h3>
           </div>
           <p
@@ -106,6 +115,7 @@ const Portfolio: React.FC = () => {
             {isPositiveHistoricalPnL ? '+' : ''}
             {totalHistoricalPnL.toFixed(2)}%
           </p>
+          <p className="mt-2 text-[11px] text-slate-500">Sum of individual trade P&amp;L percentages; not an account return.</p>
         </motion.div>
 
         {/* Metric 2: Win Rate */}
@@ -119,7 +129,7 @@ const Portfolio: React.FC = () => {
           <div className="flex items-center gap-2.5 mb-3 text-indigo-400">
             <PieChart size={20} />
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-              Execution Edge
+              Win Rate
             </h3>
           </div>
           <p className="font-mono text-2xl sm:text-3xl font-black text-white">
@@ -151,16 +161,16 @@ const Portfolio: React.FC = () => {
       {/* ========================================================= */}
       {/* 3. SETTLEMENT LEDGER                                       */}
       {/* ========================================================= */}
-      <section className="rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/30 overflow-hidden backdrop-blur-md">
+      <section className="rounded-2xl sm:rounded-3xl border border-white/5 bg-[#111b2c] overflow-hidden shadow-lg">
         <div className="p-4 sm:p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <History size={16} className="text-indigo-400" />
             <h3 className="font-bold uppercase tracking-wider text-xs text-slate-200">
-              Historical Ledger
+              Settled Trade History
             </h3>
           </div>
           <span className="text-[9px] sm:text-[10px] font-black bg-white/5 px-2.5 py-1 rounded text-slate-400 uppercase tracking-widest border border-white/5">
-            {filter === 'ALL' ? 'Verified Archive' : 'Tournament Results'}
+            {filter === 'ALL' ? 'All Settled Trades' : 'Tournament Results'}
           </span>
         </div>
 
@@ -229,10 +239,10 @@ const Portfolio: React.FC = () => {
           ) : (
             <div className="py-20 text-center px-4">
               <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
-                No settled trades found in {filter.toLowerCase()} ledger
+                No settled trades in this view
               </p>
               <p className="text-slate-600 text-[10px] mt-1 italic">
-                Execute and close a trade to populate history.
+                Closed demo positions will appear here when available.
               </p>
             </div>
           )}
