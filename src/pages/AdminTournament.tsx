@@ -333,6 +333,21 @@ const AdminTournaments: React.FC = () => {
     }
   };
 
+  const handleSettle = async (tournament: Tournament): Promise<void> => {
+    if (updatingTournamentId) return;
+    if (!window.confirm(`Settle "${tournament.title}"? This finalizes rankings and awards the configured demo-credit prize. This action cannot be undone.`)) return;
+    setUpdatingTournamentId(tournament.id);
+    try {
+      await api.post(`/admin/tournaments/${tournament.id}/settle`, {});
+      await fetchTournaments();
+      notifySuccess(`"${tournament.title}" settled successfully.`);
+    } catch (error: unknown) {
+      notifyError(extractErrorMessage(error, 'Failed to settle tournament.'));
+    } finally {
+      setUpdatingTournamentId(null);
+    }
+  };
+
   // ==========================================
   // LOADING SCREEN
   // ==========================================
@@ -653,6 +668,18 @@ const AdminTournaments: React.FC = () => {
                         {tournament.status === 'PAUSED'
                           ? 'Resume'
                           : 'Activate'}
+                      </button>
+                    )}
+
+                    {(['ACTIVE', 'PAUSED'] as TournamentStatus[]).includes(tournament.status) && new Date(tournament.endDate).getTime() <= Date.now() && (
+                      <button
+                        type="button"
+                        disabled={updatingTournamentId !== null}
+                        onClick={() => void handleSettle(tournament)}
+                        className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                      >
+                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} />}
+                        Settle Tournament
                       </button>
                     )}
 
