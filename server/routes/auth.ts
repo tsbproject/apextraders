@@ -413,6 +413,10 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       const token = randomBytes(32).toString('hex');
       const resetUrl = new URL(process.env.FRONTEND_URL);
       resetUrl.searchParams.set('resetToken', token);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetTokenHash: resetTokenDigest(token), resetTokenExpiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+      });
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -425,12 +429,9 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       });
       if (!response.ok) {
         console.error('Password recovery email delivery failed:', response.status);
+        await prisma.user.updateMany({ where: { id: user.id, resetTokenHash: resetTokenDigest(token) }, data: { resetTokenHash: null, resetTokenExpiresAt: null } });
         return res.status(503).json({ message: 'Password recovery is temporarily unavailable.' });
       }
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { resetTokenHash: resetTokenDigest(token), resetTokenExpiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-      });
     }
     return res.json({ message: RESET_RESPONSE });
   } catch (error) {
