@@ -15,7 +15,7 @@ import { calculatePnL } from '../../server/lib/pnl-Engine';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
-import CurrentRank from '../_components/CurrentRank';
+
 import MarketTerminal from '../_components/MarketTerminal';
 import TradingActivity from '../_components/TradingActivity';
 import { api } from '../services/api';
@@ -149,7 +149,12 @@ const Dashboard: React.FC = () => {
       <div className="lg:col-span-4 space-y-4 sm:space-y-6">
         
         {/* Current Standing */}
-        <CurrentRank rank={12} totalPnL={8.45} tier="Elite" />
+        <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 p-5 shadow-xl">
+          <div className="flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-300">Trading overview</span><TrendingUp size={18} className="text-indigo-300" /></div>
+          <h2 className="mt-3 text-xl font-bold tracking-tight text-white">Your trading desk</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">Follow BTC/USDT on Quidax, manage demo positions, and select a tournament account below.</p>
+          <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4"><span className="text-xs text-slate-400">Tournament performance</span><span className="font-mono text-sm font-semibold text-white">{selectedAccount ? `${Number(selectedAccount.pnlPercentage).toFixed(2)}%` : 'Select an account'}</span></div>
+        </section>
 
         {/* Execution Desk Card */}
         <section className="rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/50 p-4 sm:p-6 backdrop-blur-xl">
@@ -233,8 +238,8 @@ const Dashboard: React.FC = () => {
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white/60">
             Buying Power
           </p>
-          <h2 className="font-mono text-2xl sm:text-3xl font-black text-white mt-0.5">
-            {selectedAccount ? `${Number(selectedAccount.currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} credits` : '$25,400.00'}
+          <h2 className="font-mono text-xl sm:text-2xl font-black text-white mt-1 break-words">
+            {selectedAccount ? `${Number(selectedAccount.currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} credits` : 'Select a tournament account'}
           </h2>
         </div>
       </div>
