@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
 import CurrentRank from '../_components/CurrentRank';
+import MarketTerminal from '../_components/MarketTerminal';
 import { api } from '../services/api';
 
 const Dashboard: React.FC = () => {
@@ -27,6 +28,7 @@ const Dashboard: React.FC = () => {
   const priceStatus = useAppSelector(
     (state) => state.price.status
   );
+  const lastPriceUpdate = useAppSelector(state => state.price.lastUpdated);
 
  
 
@@ -231,8 +233,9 @@ const Dashboard: React.FC = () => {
       {/* ========================================================= */}
       {/* RIGHT COLUMN: Live Exposure & Open Positions               */}
       {/* ========================================================= */}
-      <div className="lg:col-span-8">
-        <div className="min-h-[350px] sm:min-h-[400px] rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/30 backdrop-blur-md overflow-hidden">
+      <div className="lg:col-span-8 space-y-4 sm:space-y-6">
+        <MarketTerminal price={btcPrice} status={priceStatus} lastUpdated={lastPriceUpdate} />
+        <div className="min-h-[250px] sm:min-h-[400px] rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/30 backdrop-blur-md overflow-hidden">
           
           <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-6">
             <div className="flex items-center gap-2 text-slate-400">
