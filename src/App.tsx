@@ -52,6 +52,13 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const { notifySuccess } = useNotification();
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('resetToken')) {
+      setAuthModalMode('login');
+      setIsAuthModalOpen(true);
+    }
+  }, []);
+
   // Re-hydrate session from localStorage JWT
   useAuthInit();
 
