@@ -697,6 +697,10 @@ router.post(
             if (new Date() < tournament.endDate) {
               throw new SettlementError(409, 'Tournament cannot settle before its end date.');
             }
+            const openPositions = await tx.trade.count({ where: { tournamentId, status: 'OPEN' } });
+            if (openPositions > 0) {
+              throw new SettlementError(409, `Cannot settle: ${openPositions} tournament position(s) are still open. Close all positions first.`);
+            }
             const participants = await tx.participant.findMany({
               where: { tournamentId },
               orderBy: [{ pnlPercentage: 'desc' }, { joinedAt: 'asc' }, { id: 'asc' }],
