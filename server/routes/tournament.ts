@@ -76,6 +76,28 @@ router.post('/join', authenticateToken as RequestHandler, async (req: Authentica
   }
 });
 
+router.get('/mine', authenticateToken as RequestHandler, async (req: AuthenticatedRequest, res): Promise<void> => {
+  if (!req.user?.id) { res.status(401).json({ message: 'Authentication required.' }); return; }
+  try {
+    const participants = await prisma.participant.findMany({
+      where: { userId: req.user.id, tournament: { status: TournamentStatus.ACTIVE } },
+      include: { tournament: { select: { id: true, title: true, startDate: true, endDate: true, status: true } } },
+    });
+    res.json(participants.map(p => ({
+      tournamentId: p.tournamentId,
+      title: p.tournament.title,
+      startDate: p.tournament.startDate,
+      endDate: p.tournament.endDate,
+      currentBalance: p.currentBalance,
+      startingBalance: p.startingBalance,
+      pnlPercentage: p.pnlPercentage,
+    })));
+  } catch (error) {
+    console.error('Tournament account lookup error:', error);
+    res.status(500).json({ message: 'Could not load tournament accounts.' });
+  }
+});
+
 router.get('/', async (_req, res) => {
   try {
     const tournaments = await prisma.tournament.findMany({
