@@ -28,6 +28,8 @@ model User {
   email        String   @unique
   username     String   @unique
   passwordHash String // Required for secure JWT authentication
+  resetTokenHash String? @unique
+  resetTokenExpiresAt DateTime?
   role         Role     @default(USER)
   rankTier     RankTier @default(BRONZE)
   bio          String?  @db.VarChar(160)
