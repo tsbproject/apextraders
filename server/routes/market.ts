@@ -35,10 +35,15 @@ router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Resp
     // Reject unknown candle structures instead of inventing price or volume data.
     const candles = raw.map((row: unknown) => {
       if (!row || typeof row !== 'object') return null;
-      const item = row as Record<string, unknown>;
-      const time = Number(item.time ?? item.timestamp ?? item.at);
-      const open = Number(item.open), high = Number(item.high), low = Number(item.low);
-      const close = Number(item.close), volume = Number(item.volume ?? item.vol);
+      // Quidax k-line arrays: [timestamp_ms, open, close, high, low, volume].
+      // Preserve support for object-form candles if the upstream shape changes.
+      const item = Array.isArray(row) ? null : row as Record<string, unknown>;
+      const time = Number(item ? (item.time ?? item.timestamp ?? item.at) : row[0]);
+      const open = Number(item ? item.open : row[1]);
+      const close = Number(item ? item.close : row[2]);
+      const high = Number(item ? item.high : row[3]);
+      const low = Number(item ? item.low : row[4]);
+      const volume = Number(item ? (item.volume ?? item.vol) : row[5]);
       const timestamp = time < 1e11 ? time * 1000 : time;
       if (![timestamp, open, high, low, close, volume].every(Number.isFinite) ||
           open <= 0 || close <= 0 || high < Math.max(open, close) ||
