@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowUpCircle,
@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { openTrade, closeTrade } from '../store/tradeSlice';
 import { NotifySuccess, NotifyError } from '../utils/notifications';
 import CurrentRank from '../_components/CurrentRank';
+import { api } from '../services/api';
 
 const Dashboard: React.FC = () => {
   
@@ -30,6 +31,20 @@ const Dashboard: React.FC = () => {
  
 
   const dispatch = useAppDispatch();
+
+  const [accounts, setAccounts] = useState<{ tournamentId: string; title: string; startDate: string; endDate: string; currentBalance: number; pnlPercentage: number }[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  const [accountError, setAccountError] = useState('');
+  const refreshAccounts = async () => {
+    try {
+      const response = await api.get<typeof accounts>('/tournaments/mine');
+      setAccounts(response.data);
+      setAccountError('');
+    } catch { setAccountError('Could not load tournament accounts.'); }
+  };
+  useEffect(() => { void refreshAccounts(); }, []);
+  const selectedAccount = accounts.find(a => a.tournamentId === selectedTournamentId);
+  const activeAccount = selectedAccount && Date.now() >= new Date(selectedAccount.startDate).getTime() && Date.now() < new Date(selectedAccount.endDate).getTime();
 
   const [amount, setAmount] =
     useState<string>('1000');
@@ -58,6 +73,10 @@ const Dashboard: React.FC = () => {
       return;
     }
 
+    if (selectedTournamentId && !activeAccount) {
+      NotifyError('This tournament is not within its trading window.');
+      return;
+    }
     setIsExecuting(true);
     try {
       await dispatch(
@@ -65,10 +84,12 @@ const Dashboard: React.FC = () => {
           symbol: 'BTC/USDT',
           side,
           entryPrice: btcPrice,
+          ...(selectedTournamentId ? { tournamentId: selectedTournamentId, allocatedCapital: numericAmount } : {}),
         })
       ).unwrap();
         
 
+      await refreshAccounts();
       NotifySuccess(
         `${side} Order Filled at $${btcPrice.toLocaleString(undefined, {
           minimumFractionDigits: 2,
@@ -99,6 +120,7 @@ const Dashboard: React.FC = () => {
       const finalPnL = result?.pnlPercentage
         ? result.pnlPercentage.toFixed(2)
         : '0.00';
+      await refreshAccounts();
       NotifySuccess(`Position Settled! Final PnL: ${finalPnL}%`);
     } catch  {
       NotifyError('Database Error: Settlement could not be saved.');
@@ -129,8 +151,17 @@ const Dashboard: React.FC = () => {
 
           <div className="space-y-4">
             <div>
+              <label htmlFor="trade-tournament" className="ml-1 text-[10px] font-black uppercase tracking-widest text-slate-500">Trading account</label>
+              <select id="trade-tournament" value={selectedTournamentId} onChange={e => setSelectedTournamentId(e.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950 p-3 text-sm text-white">
+                <option value="">General demo (non-tournament)</option>
+                {accounts.map(a => <option key={a.tournamentId} value={a.tournamentId}>{a.title}</option>)}
+              </select>
+              {accountError && <p className="mt-1 text-xs text-rose-400">{accountError}</p>}
+              {selectedAccount && <p className="mt-1 text-xs text-slate-400">Tournament balance: {Number(selectedAccount.currentBalance).toFixed(2)} credits · PnL: {Number(selectedAccount.pnlPercentage).toFixed(2)}%</p>}
+            </div>
+            <div>
               <label className="ml-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">
-                Order Size (USD)
+                {selectedTournamentId ? 'Allocated Capital (Demo Credits)' : 'Order Size (USD)'}
               </label>
               <div className="relative mt-1.5">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-500">
@@ -141,6 +172,8 @@ const Dashboard: React.FC = () => {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="1000"
+                  min="0.01"
+                  step="0.01"
                   className="w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 py-3.5 pl-10 pr-4 font-mono text-sm text-white outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
                 />
               </div>
@@ -150,7 +183,7 @@ const Dashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleTrade('BUY')}
-                disabled={isExecuting || !btcPrice}
+                disabled={isExecuting || !btcPrice || (Boolean(selectedTournamentId) && !activeAccount)}
                 className="flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-500 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 transition-all hover:bg-emerald-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(16,185,129,0.2)]"
               >
                 {isExecuting ? (
@@ -190,7 +223,7 @@ const Dashboard: React.FC = () => {
             Buying Power
           </p>
           <h2 className="font-mono text-2xl sm:text-3xl font-black text-white mt-0.5">
-            $25,400.00
+            {selectedAccount ? `${Number(selectedAccount.currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })} credits` : '$25,400.00'}
           </h2>
         </div>
       </div>
@@ -251,6 +284,7 @@ const Dashboard: React.FC = () => {
                           <p className="text-xs sm:text-sm font-bold text-white leading-none">
                             {trade.symbol}
                           </p>
+                          {trade.tournamentId && <p className="mt-1 text-[10px] text-indigo-300">Tournament position · {Number(trade.allocatedCapital ?? 0).toFixed(2)} credits</p>}
                           <p className="mt-1 font-mono text-[10px] text-slate-400">
                             Entry: ${Number(trade.entryPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </p>
