@@ -39,6 +39,11 @@ const Dashboard: React.FC = () => {
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
   const [accountError, setAccountError] = useState('');
   const refreshAccounts = async () => {
+    if (!localStorage.getItem('apex_token')) {
+      setAccounts([]);
+      setAccountError('');
+      return;
+    }
     try {
       const response = await api.get<typeof accounts>('/tournaments/mine');
       setAccounts(response.data);
