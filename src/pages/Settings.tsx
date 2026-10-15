@@ -1,66 +1,23 @@
 import React, { useState } from 'react';
-import { User, Camera, Shield, Bell, Save, Loader2, KeyRound, Smartphone } from 'lucide-react';
-import { NotifySuccess, NotifyError } from '../utils/notifications';
+import { User, Shield, Bell, KeyRound, Smartphone, Eye, EyeOff } from 'lucide-react';
+import { useAppSelector } from '../store/hooks';
 
 export type SettingsTab = 'profile' | 'security' | 'notifications';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const [username, setUsername] = useState<string>('Tayo Bolarinwa');
-  const [bio, setBio] = useState<string>('Trading my way to the top of the Apex Leaderboard.');
-  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const user = useAppSelector(state => state.auth.user);
+  const username = user?.username || 'Trader';
 
   // Security tab state
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Notifications state
   const [emailAlerts, setEmailAlerts] = useState<boolean>(true);
   const [tradeNotifications, setTradeNotifications] = useState<boolean>(true);
-
-  const handleSaveProfile = async () => {
-    if (!username.trim()) {
-      NotifyError('Public Username cannot be empty.');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/user/update/user_1`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          bio,
-        }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        NotifySuccess(data.message || 'Profile settings updated successfully!');
-      } else {
-        NotifyError(data.message || 'Update failed.');
-      }
-    } catch {
-      NotifyError('Could not connect to the Identity Engine.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveSecurity = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword) {
-      NotifyError('Please complete all password fields.');
-      return;
-    }
-    NotifySuccess('Security credentials updated successfully.');
-    setCurrentPassword('');
-    setNewPassword('');
-  };
 
   const navItems = [
     { id: 'profile' as SettingsTab, label: 'Public Profile', icon: User },
@@ -73,11 +30,11 @@ const Settings: React.FC = () => {
       
       {/* Header */}
       <header>
-        <h1 className="text-2xl sm:text-3xl font-black italic tracking-tighter text-white uppercase">
-          Identity Settings
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          Account settings
         </h1>
         <p className="mt-1 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-500">
-          Manage your global trading presence
+          Your profile and account preferences
         </p>
       </header>
 
@@ -115,7 +72,7 @@ const Settings: React.FC = () => {
           
           {/* TAB 1: PUBLIC PROFILE */}
           {activeTab === 'profile' && (
-            <section className="space-y-6 rounded-2xl sm:rounded-3xl border border-white/5 bg-slate-900/40 p-5 sm:p-8 backdrop-blur-md">
+            <section className="space-y-6 rounded-2xl sm:rounded-3xl border border-white/10 bg-[#111b2c] p-5 sm:p-8 shadow-lg">
               {/* Avatar Section */}
               <div className="flex items-center gap-4 sm:gap-6">
                 <div className="group relative shrink-0">
@@ -126,9 +83,6 @@ const Settings: React.FC = () => {
                     className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl border-2 border-indigo-500/30 bg-slate-800 p-1 object-cover"
                     alt="User Avatar"
                   />
-                  <div className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-2xl sm:rounded-3xl bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Camera className="text-white" size={20} />
-                  </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white">Profile Picture</h4>
@@ -138,48 +92,13 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
-              {/* Input Fields */}
-              <div className="space-y-4">
-                <div>
-                  <label className="ml-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Public Username
-                  </label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter handle..."
-                    className="mt-1.5 w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-xs sm:text-sm text-white outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="ml-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Bio / Trading Strategy
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Describe your strategy..."
-                    className="mt-1.5 w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-xs sm:text-sm text-white outline-none transition-all focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 resize-none"
-                  />
-                </div>
+              <div className="rounded-xl border border-white/10 bg-[#080e1c] p-4">
+                <p className="text-xs font-semibold text-slate-400">Username</p>
+                <p className="mt-1 text-sm font-bold text-white">{username}</p>
+                <p className="mt-3 text-xs font-semibold text-slate-400">Email</p>
+                <p className="mt-1 break-all text-sm text-white">{user?.email || 'Not available'}</p>
               </div>
-
-              <button
-                type="button"
-                disabled={isSaving}
-                onClick={handleSaveProfile}
-                className="flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-emerald-400 px-6 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 transition-all hover:bg-emerald-300 active:scale-95 disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Save size={18} />
-                )}
-                <span>Save Changes</span>
-              </button>
+              <p className="text-xs leading-relaxed text-slate-500">Profile editing will be available when secure account-update endpoints are connected.</p>
             </section>
           )}
 
@@ -193,17 +112,18 @@ const Settings: React.FC = () => {
                 </h3>
               </div>
 
-              <form onSubmit={handleSaveSecurity} className="space-y-4">
+              <div className="space-y-4">
                 <div>
                   <label className="ml-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Current Password
                   </label>
                   <input
-                    type="password"
+                    type={showCurrentPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="mt-1.5 w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-xs sm:text-sm text-white outline-none focus:border-indigo-500/50"
-                  />
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 pr-12 text-xs sm:text-sm text-white outline-none focus:border-indigo-500/50"
+                  /><button type="button" onClick={() => setShowCurrentPassword(v => !v)} className="mt-2 flex items-center gap-2 text-xs text-slate-400 hover:text-white" aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}>{showCurrentPassword ? <EyeOff size={15}/> : <Eye size={15}/>} {showCurrentPassword ? "Hide" : "Show"} current password</button>
                 </div>
 
                 <div>
@@ -211,21 +131,23 @@ const Settings: React.FC = () => {
                     New Password
                   </label>
                   <input
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="mt-1.5 w-full rounded-xl sm:rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-xs sm:text-sm text-white outline-none focus:border-indigo-500/50"
-                  />
+                  /><button type="button" onClick={() => setShowNewPassword(v => !v)} className="mt-2 flex items-center gap-2 text-xs text-slate-400 hover:text-white" aria-label={showNewPassword ? "Hide new password" : "Show new password"}>{showNewPassword ? <EyeOff size={15}/> : <Eye size={15}/>} {showNewPassword ? "Hide" : "Show"} new password</button>
                 </div>
 
                 <button
-                  type="submit"
+                  type="button" disabled
                   className="flex items-center gap-2 rounded-xl sm:rounded-2xl bg-indigo-600 px-6 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wider text-white hover:bg-indigo-500"
                 >
                   <Shield size={18} />
-                  <span>Update Password</span>
+                  <span>Password updates coming soon</span>
                 </button>
-              </form>
+                <p className="text-xs leading-relaxed text-slate-500">Password changes and email recovery require secure backend endpoints. This control is disabled until they are available.</p>
+              </div>
             </section>
           )}
 
@@ -243,11 +165,12 @@ const Settings: React.FC = () => {
                 <div className="flex items-center justify-between rounded-xl bg-slate-950/60 p-4 border border-white/5">
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-white">Email Digest</p>
-                    <p className="text-[10px] sm:text-xs text-slate-500">Receive weekly tournament summaries</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500">Email digests are not yet connected</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={emailAlerts}
+                    disabled
                     onChange={(e) => setEmailAlerts(e.target.checked)}
                     className="h-5 w-5 accent-indigo-500 cursor-pointer"
                   />
@@ -256,11 +179,12 @@ const Settings: React.FC = () => {
                 <div className="flex items-center justify-between rounded-xl bg-slate-950/60 p-4 border border-white/5">
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-white">Trade Execution Alerts</p>
-                    <p className="text-[10px] sm:text-xs text-slate-500">Push notifications on order fills</p>
+                    <p className="text-[10px] sm:text-xs text-slate-500">Push alerts are not yet connected</p>
                   </div>
                   <input
                     type="checkbox"
                     checked={tradeNotifications}
+                    disabled
                     onChange={(e) => setTradeNotifications(e.target.checked)}
                     className="h-5 w-5 accent-indigo-500 cursor-pointer"
                   />
