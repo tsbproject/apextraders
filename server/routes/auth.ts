@@ -424,7 +424,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
           from: process.env.RESET_EMAIL_FROM,
           to: [email],
           subject: 'Reset your ApexTraders password',
-          text: `Use this link to reset your password (expires in 30 minutes): ${resetUrl.toString()}\\nIf you did not request this, ignore this email.`,
+          text: `Use this link to reset your password (expires in 30 minutes): ${resetUrl.toString()}\nIf you did not request this, ignore this email.`,
         }),
       });
       if (!response.ok) {
