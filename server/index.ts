@@ -35,32 +35,6 @@ if (!Number.isSafeInteger(trustedProxyHops) || trustedProxyHops < 0 || trustedPr
 app.set('trust proxy', trustedProxyHops);
 const PORT = Number(process.env.PORT) || 3001;
 
-// Temporary staging-only proxy diagnostics. Disabled unless explicitly enabled.
-// Trigger by requesting GET /api/health?proxyDiagnostic=1 through the public
-// ingress; the response remains the ordinary health response.
-// Never log the raw forwarding headers, client IP, or socket address.
-// Capped per process to prevent unbounded log output.
-let proxyDiagnosticSamples = 0;
-if (process.env.PROXY_DIAGNOSTICS_ENABLED === 'true') {
-  app.use((req, _res, next) => {
-    if (req.method === 'GET' && req.path === '/api/health' &&
-        req.query.proxyDiagnostic === '1' && proxyDiagnosticSamples < 5) {
-      proxyDiagnosticSamples += 1;
-      const forwardedFor = req.get('x-forwarded-for');
-      console.info('[Proxy diagnostic]', {
-        sample: proxyDiagnosticSamples,
-        trustProxyHops: trustedProxyHops,
-        forwardedForPresent: forwardedFor !== undefined,
-        forwardedForEntries: forwardedFor ? forwardedFor.split(',').length : 0,
-        forwardedProtoPresent: req.get('x-forwarded-proto') !== undefined,
-        expressIpsCount: req.ips.length,
-        expressIpDiffersFromSocket: req.ip !== req.socket.remoteAddress,
-      });
-    }
-    next();
-  });
-}
-
 // ==========================================
 // SECURITY & GLOBAL MIDDLEWARE
 // ==========================================
