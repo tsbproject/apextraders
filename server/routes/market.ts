@@ -1,6 +1,7 @@
 // server/routes/market.ts
 
 import { Router, Request, Response } from 'express';
+import { summarizeCandleSample } from '../lib/marketCandleDiagnostics';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Resp
       return { time: timestamp, open, high, low, close, volume };
     }).filter((c): c is {time:number;open:number;high:number;low:number;close:number;volume:number} => c !== null);
     if (!candles.length) {
-      console.error('[Market candles] Quidax returned no recognizable candles; sample:', JSON.stringify(raw[0]).slice(0, 350));
+      console.error('[Market candles] Quidax returned no recognizable candles; sample:', summarizeCandleSample(raw));
       return res.status(502).json({ message: 'Quidax candle structure requires verification.' });
     }
     return res.json({ symbol: 'BTC/USDT', provider: 'quidax', interval, candles: candles.sort((x,y) => x.time-y.time) });
