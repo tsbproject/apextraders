@@ -702,7 +702,7 @@ socketService.init(httpServer);
 // SERVER START
 // ==========================================
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(
     `🚀 ApexTraders Secured API Engine running on port ${PORT}`
   );

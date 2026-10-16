@@ -1,4 +1,4 @@
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
 import 'dotenv/config';
 
 export default defineConfig({
@@ -7,6 +7,8 @@ export default defineConfig({
     seed: 'npx tsx server/prisma/seed.ts',
   },
   datasource: {
-    url: env('DATABASE_URL'),
+    // Client generation does not connect to a database. Database commands and
+    // the API still require DATABASE_URL to be supplied at runtime.
+    url: process.env.DATABASE_URL,
   },
 });
