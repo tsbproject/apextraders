@@ -1,8 +1,4 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" },
-    { "path": "./server" }
-  ]
+  "extends": "./tsconfig.app.json",
+  "include": ["src", "server", "vite.config.ts", "prisma.config.ts"]
 }

@@ -67,7 +67,8 @@ export const TournamentStatus: {
   UPCOMING: 'UPCOMING',
   ACTIVE: 'ACTIVE',
   PAUSED: 'PAUSED',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
 };
 
 export type TournamentStatus = (typeof TournamentStatus)[keyof typeof TournamentStatus]
@@ -4833,11 +4834,15 @@ export namespace Prisma {
   }
 
   export type TournamentAvgAggregateOutputType = {
-    prizePool: number | null
+    entryFee: Decimal | null
+    prizePool: Decimal | null
+    maxParticipants: number | null
   }
 
   export type TournamentSumAggregateOutputType = {
-    prizePool: number | null
+    entryFee: Decimal | null
+    prizePool: Decimal | null
+    maxParticipants: number | null
   }
 
   export type TournamentMinAggregateOutputType = {
@@ -4846,9 +4851,13 @@ export namespace Prisma {
     description: string | null
     startDate: Date | null
     endDate: Date | null
-    prizePool: number | null
-    status: string | null
+    entryFee: Decimal | null
+    prizePool: Decimal | null
+    maxParticipants: number | null
+    status: $Enums.TournamentStatus | null
+    settledAt: Date | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TournamentMaxAggregateOutputType = {
@@ -4857,9 +4866,13 @@ export namespace Prisma {
     description: string | null
     startDate: Date | null
     endDate: Date | null
-    prizePool: number | null
-    status: string | null
+    entryFee: Decimal | null
+    prizePool: Decimal | null
+    maxParticipants: number | null
+    status: $Enums.TournamentStatus | null
+    settledAt: Date | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TournamentCountAggregateOutputType = {
@@ -4868,19 +4881,27 @@ export namespace Prisma {
     description: number
     startDate: number
     endDate: number
+    entryFee: number
     prizePool: number
+    maxParticipants: number
     status: number
+    settledAt: number
     createdAt: number
+    updatedAt: number
     _all: number
   }
 
 
   export type TournamentAvgAggregateInputType = {
+    entryFee?: true
     prizePool?: true
+    maxParticipants?: true
   }
 
   export type TournamentSumAggregateInputType = {
+    entryFee?: true
     prizePool?: true
+    maxParticipants?: true
   }
 
   export type TournamentMinAggregateInputType = {
@@ -4889,9 +4910,13 @@ export namespace Prisma {
     description?: true
     startDate?: true
     endDate?: true
+    entryFee?: true
     prizePool?: true
+    maxParticipants?: true
     status?: true
+    settledAt?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type TournamentMaxAggregateInputType = {
@@ -4900,9 +4925,13 @@ export namespace Prisma {
     description?: true
     startDate?: true
     endDate?: true
+    entryFee?: true
     prizePool?: true
+    maxParticipants?: true
     status?: true
+    settledAt?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type TournamentCountAggregateInputType = {
@@ -4911,9 +4940,13 @@ export namespace Prisma {
     description?: true
     startDate?: true
     endDate?: true
+    entryFee?: true
     prizePool?: true
+    maxParticipants?: true
     status?: true
+    settledAt?: true
     createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -5009,9 +5042,13 @@ export namespace Prisma {
     description: string | null
     startDate: Date
     endDate: Date
-    prizePool: number
-    status: string
+    entryFee: Decimal
+    prizePool: Decimal
+    maxParticipants: number
+    status: $Enums.TournamentStatus
+    settledAt: Date | null
     createdAt: Date
+    updatedAt: Date
     _count: TournamentCountAggregateOutputType | null
     _avg: TournamentAvgAggregateOutputType | null
     _sum: TournamentSumAggregateOutputType | null
@@ -5039,9 +5076,13 @@ export namespace Prisma {
     description?: boolean
     startDate?: boolean
     endDate?: boolean
+    entryFee?: boolean
     prizePool?: boolean
+    maxParticipants?: boolean
     status?: boolean
+    settledAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
     participants?: boolean | Tournament$participantsArgs<ExtArgs>
     _count?: boolean | TournamentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["tournament"]>
@@ -5052,9 +5093,13 @@ export namespace Prisma {
     description?: boolean
     startDate?: boolean
     endDate?: boolean
+    entryFee?: boolean
     prizePool?: boolean
+    maxParticipants?: boolean
     status?: boolean
+    settledAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["tournament"]>
 
   export type TournamentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -5063,9 +5108,13 @@ export namespace Prisma {
     description?: boolean
     startDate?: boolean
     endDate?: boolean
+    entryFee?: boolean
     prizePool?: boolean
+    maxParticipants?: boolean
     status?: boolean
+    settledAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["tournament"]>
 
   export type TournamentSelectScalar = {
@@ -5074,12 +5123,16 @@ export namespace Prisma {
     description?: boolean
     startDate?: boolean
     endDate?: boolean
+    entryFee?: boolean
     prizePool?: boolean
+    maxParticipants?: boolean
     status?: boolean
+    settledAt?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type TournamentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "description" | "startDate" | "endDate" | "prizePool" | "status" | "createdAt", ExtArgs["result"]["tournament"]>
+  export type TournamentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "description" | "startDate" | "endDate" | "entryFee" | "prizePool" | "maxParticipants" | "status" | "settledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["tournament"]>
   export type TournamentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     participants?: boolean | Tournament$participantsArgs<ExtArgs>
     _count?: boolean | TournamentCountOutputTypeDefaultArgs<ExtArgs>
@@ -5098,9 +5151,13 @@ export namespace Prisma {
       description: string | null
       startDate: Date
       endDate: Date
-      prizePool: number
-      status: string
+      entryFee: Prisma.Decimal
+      prizePool: Prisma.Decimal
+      maxParticipants: number
+      status: $Enums.TournamentStatus
+      settledAt: Date | null
       createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["tournament"]>
     composites: {}
   }
@@ -5530,9 +5587,13 @@ export namespace Prisma {
     readonly description: FieldRef<"Tournament", 'String'>
     readonly startDate: FieldRef<"Tournament", 'DateTime'>
     readonly endDate: FieldRef<"Tournament", 'DateTime'>
-    readonly prizePool: FieldRef<"Tournament", 'Float'>
-    readonly status: FieldRef<"Tournament", 'String'>
+    readonly entryFee: FieldRef<"Tournament", 'Decimal'>
+    readonly prizePool: FieldRef<"Tournament", 'Decimal'>
+    readonly maxParticipants: FieldRef<"Tournament", 'Int'>
+    readonly status: FieldRef<"Tournament", 'TournamentStatus'>
+    readonly settledAt: FieldRef<"Tournament", 'DateTime'>
     readonly createdAt: FieldRef<"Tournament", 'DateTime'>
+    readonly updatedAt: FieldRef<"Tournament", 'DateTime'>
   }
     
 
@@ -5981,27 +6042,30 @@ export namespace Prisma {
   }
 
   export type ParticipantAvgAggregateOutputType = {
-    startingBalance: number | null
-    currentBalance: number | null
-    pnlPercentage: number | null
+    startingBalance: Decimal | null
+    currentBalance: Decimal | null
+    pnlPercentage: Decimal | null
     rank: number | null
+    prizeWon: Decimal | null
   }
 
   export type ParticipantSumAggregateOutputType = {
-    startingBalance: number | null
-    currentBalance: number | null
-    pnlPercentage: number | null
+    startingBalance: Decimal | null
+    currentBalance: Decimal | null
+    pnlPercentage: Decimal | null
     rank: number | null
+    prizeWon: Decimal | null
   }
 
   export type ParticipantMinAggregateOutputType = {
     id: string | null
     userId: string | null
     tournamentId: string | null
-    startingBalance: number | null
-    currentBalance: number | null
-    pnlPercentage: number | null
+    startingBalance: Decimal | null
+    currentBalance: Decimal | null
+    pnlPercentage: Decimal | null
     rank: number | null
+    prizeWon: Decimal | null
     joinedAt: Date | null
   }
 
@@ -6009,10 +6073,11 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     tournamentId: string | null
-    startingBalance: number | null
-    currentBalance: number | null
-    pnlPercentage: number | null
+    startingBalance: Decimal | null
+    currentBalance: Decimal | null
+    pnlPercentage: Decimal | null
     rank: number | null
+    prizeWon: Decimal | null
     joinedAt: Date | null
   }
 
@@ -6024,6 +6089,7 @@ export namespace Prisma {
     currentBalance: number
     pnlPercentage: number
     rank: number
+    prizeWon: number
     joinedAt: number
     _all: number
   }
@@ -6034,6 +6100,7 @@ export namespace Prisma {
     currentBalance?: true
     pnlPercentage?: true
     rank?: true
+    prizeWon?: true
   }
 
   export type ParticipantSumAggregateInputType = {
@@ -6041,6 +6108,7 @@ export namespace Prisma {
     currentBalance?: true
     pnlPercentage?: true
     rank?: true
+    prizeWon?: true
   }
 
   export type ParticipantMinAggregateInputType = {
@@ -6051,6 +6119,7 @@ export namespace Prisma {
     currentBalance?: true
     pnlPercentage?: true
     rank?: true
+    prizeWon?: true
     joinedAt?: true
   }
 
@@ -6062,6 +6131,7 @@ export namespace Prisma {
     currentBalance?: true
     pnlPercentage?: true
     rank?: true
+    prizeWon?: true
     joinedAt?: true
   }
 
@@ -6073,6 +6143,7 @@ export namespace Prisma {
     currentBalance?: true
     pnlPercentage?: true
     rank?: true
+    prizeWon?: true
     joinedAt?: true
     _all?: true
   }
@@ -6167,10 +6238,11 @@ export namespace Prisma {
     id: string
     userId: string
     tournamentId: string
-    startingBalance: number
-    currentBalance: number
-    pnlPercentage: number
+    startingBalance: Decimal
+    currentBalance: Decimal
+    pnlPercentage: Decimal
     rank: number | null
+    prizeWon: Decimal
     joinedAt: Date
     _count: ParticipantCountAggregateOutputType | null
     _avg: ParticipantAvgAggregateOutputType | null
@@ -6201,6 +6273,7 @@ export namespace Prisma {
     currentBalance?: boolean
     pnlPercentage?: boolean
     rank?: boolean
+    prizeWon?: boolean
     joinedAt?: boolean
     tournament?: boolean | TournamentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -6214,6 +6287,7 @@ export namespace Prisma {
     currentBalance?: boolean
     pnlPercentage?: boolean
     rank?: boolean
+    prizeWon?: boolean
     joinedAt?: boolean
     tournament?: boolean | TournamentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -6227,6 +6301,7 @@ export namespace Prisma {
     currentBalance?: boolean
     pnlPercentage?: boolean
     rank?: boolean
+    prizeWon?: boolean
     joinedAt?: boolean
     tournament?: boolean | TournamentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -6240,10 +6315,11 @@ export namespace Prisma {
     currentBalance?: boolean
     pnlPercentage?: boolean
     rank?: boolean
+    prizeWon?: boolean
     joinedAt?: boolean
   }
 
-  export type ParticipantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tournamentId" | "startingBalance" | "currentBalance" | "pnlPercentage" | "rank" | "joinedAt", ExtArgs["result"]["participant"]>
+  export type ParticipantOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tournamentId" | "startingBalance" | "currentBalance" | "pnlPercentage" | "rank" | "prizeWon" | "joinedAt", ExtArgs["result"]["participant"]>
   export type ParticipantInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     tournament?: boolean | TournamentDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -6267,10 +6343,11 @@ export namespace Prisma {
       id: string
       userId: string
       tournamentId: string
-      startingBalance: number
-      currentBalance: number
-      pnlPercentage: number
+      startingBalance: Prisma.Decimal
+      currentBalance: Prisma.Decimal
+      pnlPercentage: Prisma.Decimal
       rank: number | null
+      prizeWon: Prisma.Decimal
       joinedAt: Date
     }, ExtArgs["result"]["participant"]>
     composites: {}
@@ -6700,10 +6777,11 @@ export namespace Prisma {
     readonly id: FieldRef<"Participant", 'String'>
     readonly userId: FieldRef<"Participant", 'String'>
     readonly tournamentId: FieldRef<"Participant", 'String'>
-    readonly startingBalance: FieldRef<"Participant", 'Float'>
-    readonly currentBalance: FieldRef<"Participant", 'Float'>
-    readonly pnlPercentage: FieldRef<"Participant", 'Float'>
+    readonly startingBalance: FieldRef<"Participant", 'Decimal'>
+    readonly currentBalance: FieldRef<"Participant", 'Decimal'>
+    readonly pnlPercentage: FieldRef<"Participant", 'Decimal'>
     readonly rank: FieldRef<"Participant", 'Int'>
+    readonly prizeWon: FieldRef<"Participant", 'Decimal'>
     readonly joinedAt: FieldRef<"Participant", 'DateTime'>
   }
     
@@ -7186,9 +7264,13 @@ export namespace Prisma {
     description: 'description',
     startDate: 'startDate',
     endDate: 'endDate',
+    entryFee: 'entryFee',
     prizePool: 'prizePool',
+    maxParticipants: 'maxParticipants',
     status: 'status',
-    createdAt: 'createdAt'
+    settledAt: 'settledAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type TournamentScalarFieldEnum = (typeof TournamentScalarFieldEnum)[keyof typeof TournamentScalarFieldEnum]
@@ -7202,6 +7284,7 @@ export namespace Prisma {
     currentBalance: 'currentBalance',
     pnlPercentage: 'pnlPercentage',
     rank: 'rank',
+    prizeWon: 'prizeWon',
     joinedAt: 'joinedAt'
   };
 
@@ -7308,20 +7391,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Float'
-   */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float[]'
-   */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -7332,6 +7401,34 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TournamentStatus'
+   */
+  export type EnumTournamentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TournamentStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'TournamentStatus[]'
+   */
+  export type ListEnumTournamentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TournamentStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
   /**
    * Deep Input Types
@@ -7567,9 +7664,13 @@ export namespace Prisma {
     description?: StringNullableFilter<"Tournament"> | string | null
     startDate?: DateTimeFilter<"Tournament"> | Date | string
     endDate?: DateTimeFilter<"Tournament"> | Date | string
-    prizePool?: FloatFilter<"Tournament"> | number
-    status?: StringFilter<"Tournament"> | string
+    entryFee?: DecimalFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFilter<"Tournament"> | number
+    status?: EnumTournamentStatusFilter<"Tournament"> | $Enums.TournamentStatus
+    settledAt?: DateTimeNullableFilter<"Tournament"> | Date | string | null
     createdAt?: DateTimeFilter<"Tournament"> | Date | string
+    updatedAt?: DateTimeFilter<"Tournament"> | Date | string
     participants?: ParticipantListRelationFilter
   }
 
@@ -7579,9 +7680,13 @@ export namespace Prisma {
     description?: SortOrderInput | SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
     status?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     participants?: ParticipantOrderByRelationAggregateInput
   }
 
@@ -7594,9 +7699,13 @@ export namespace Prisma {
     description?: StringNullableFilter<"Tournament"> | string | null
     startDate?: DateTimeFilter<"Tournament"> | Date | string
     endDate?: DateTimeFilter<"Tournament"> | Date | string
-    prizePool?: FloatFilter<"Tournament"> | number
-    status?: StringFilter<"Tournament"> | string
+    entryFee?: DecimalFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFilter<"Tournament"> | number
+    status?: EnumTournamentStatusFilter<"Tournament"> | $Enums.TournamentStatus
+    settledAt?: DateTimeNullableFilter<"Tournament"> | Date | string | null
     createdAt?: DateTimeFilter<"Tournament"> | Date | string
+    updatedAt?: DateTimeFilter<"Tournament"> | Date | string
     participants?: ParticipantListRelationFilter
   }, "id">
 
@@ -7606,9 +7715,13 @@ export namespace Prisma {
     description?: SortOrderInput | SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
     status?: SortOrder
+    settledAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: TournamentCountOrderByAggregateInput
     _avg?: TournamentAvgOrderByAggregateInput
     _max?: TournamentMaxOrderByAggregateInput
@@ -7625,9 +7738,13 @@ export namespace Prisma {
     description?: StringNullableWithAggregatesFilter<"Tournament"> | string | null
     startDate?: DateTimeWithAggregatesFilter<"Tournament"> | Date | string
     endDate?: DateTimeWithAggregatesFilter<"Tournament"> | Date | string
-    prizePool?: FloatWithAggregatesFilter<"Tournament"> | number
-    status?: StringWithAggregatesFilter<"Tournament"> | string
+    entryFee?: DecimalWithAggregatesFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalWithAggregatesFilter<"Tournament"> | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntWithAggregatesFilter<"Tournament"> | number
+    status?: EnumTournamentStatusWithAggregatesFilter<"Tournament"> | $Enums.TournamentStatus
+    settledAt?: DateTimeNullableWithAggregatesFilter<"Tournament"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Tournament"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Tournament"> | Date | string
   }
 
   export type ParticipantWhereInput = {
@@ -7637,10 +7754,11 @@ export namespace Prisma {
     id?: StringFilter<"Participant"> | string
     userId?: StringFilter<"Participant"> | string
     tournamentId?: StringFilter<"Participant"> | string
-    startingBalance?: FloatFilter<"Participant"> | number
-    currentBalance?: FloatFilter<"Participant"> | number
-    pnlPercentage?: FloatFilter<"Participant"> | number
+    startingBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     rank?: IntNullableFilter<"Participant"> | number | null
+    prizeWon?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFilter<"Participant"> | Date | string
     tournament?: XOR<TournamentScalarRelationFilter, TournamentWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -7654,6 +7772,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrderInput | SortOrder
+    prizeWon?: SortOrder
     joinedAt?: SortOrder
     tournament?: TournamentOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
@@ -7667,10 +7786,11 @@ export namespace Prisma {
     NOT?: ParticipantWhereInput | ParticipantWhereInput[]
     userId?: StringFilter<"Participant"> | string
     tournamentId?: StringFilter<"Participant"> | string
-    startingBalance?: FloatFilter<"Participant"> | number
-    currentBalance?: FloatFilter<"Participant"> | number
-    pnlPercentage?: FloatFilter<"Participant"> | number
+    startingBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     rank?: IntNullableFilter<"Participant"> | number | null
+    prizeWon?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFilter<"Participant"> | Date | string
     tournament?: XOR<TournamentScalarRelationFilter, TournamentWhereInput>
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -7684,6 +7804,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrderInput | SortOrder
+    prizeWon?: SortOrder
     joinedAt?: SortOrder
     _count?: ParticipantCountOrderByAggregateInput
     _avg?: ParticipantAvgOrderByAggregateInput
@@ -7699,10 +7820,11 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Participant"> | string
     userId?: StringWithAggregatesFilter<"Participant"> | string
     tournamentId?: StringWithAggregatesFilter<"Participant"> | string
-    startingBalance?: FloatWithAggregatesFilter<"Participant"> | number
-    currentBalance?: FloatWithAggregatesFilter<"Participant"> | number
-    pnlPercentage?: FloatWithAggregatesFilter<"Participant"> | number
+    startingBalance?: DecimalWithAggregatesFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalWithAggregatesFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalWithAggregatesFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     rank?: IntNullableWithAggregatesFilter<"Participant"> | number | null
+    prizeWon?: DecimalWithAggregatesFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeWithAggregatesFilter<"Participant"> | Date | string
   }
 
@@ -7953,9 +8075,13 @@ export namespace Prisma {
     description?: string | null
     startDate: Date | string
     endDate: Date | string
-    prizePool?: number
-    status?: string
+    entryFee?: Decimal | DecimalJsLike | number | string
+    prizePool?: Decimal | DecimalJsLike | number | string
+    maxParticipants?: number
+    status?: $Enums.TournamentStatus
+    settledAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     participants?: ParticipantCreateNestedManyWithoutTournamentInput
   }
 
@@ -7965,9 +8091,13 @@ export namespace Prisma {
     description?: string | null
     startDate: Date | string
     endDate: Date | string
-    prizePool?: number
-    status?: string
+    entryFee?: Decimal | DecimalJsLike | number | string
+    prizePool?: Decimal | DecimalJsLike | number | string
+    maxParticipants?: number
+    status?: $Enums.TournamentStatus
+    settledAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
     participants?: ParticipantUncheckedCreateNestedManyWithoutTournamentInput
   }
 
@@ -7977,9 +8107,13 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     participants?: ParticipantUpdateManyWithoutTournamentNestedInput
   }
 
@@ -7989,9 +8123,13 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     participants?: ParticipantUncheckedUpdateManyWithoutTournamentNestedInput
   }
 
@@ -8001,9 +8139,13 @@ export namespace Prisma {
     description?: string | null
     startDate: Date | string
     endDate: Date | string
-    prizePool?: number
-    status?: string
+    entryFee?: Decimal | DecimalJsLike | number | string
+    prizePool?: Decimal | DecimalJsLike | number | string
+    maxParticipants?: number
+    status?: $Enums.TournamentStatus
+    settledAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TournamentUpdateManyMutationInput = {
@@ -8012,9 +8154,13 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TournamentUncheckedUpdateManyInput = {
@@ -8023,17 +8169,22 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ParticipantCreateInput = {
     id?: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
     tournament: TournamentCreateNestedOneWithoutParticipantsInput
     user: UserCreateNestedOneWithoutParticipantsInput
@@ -8043,19 +8194,21 @@ export namespace Prisma {
     id?: string
     userId: string
     tournamentId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
   export type ParticipantUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tournament?: TournamentUpdateOneRequiredWithoutParticipantsNestedInput
     user?: UserUpdateOneRequiredWithoutParticipantsNestedInput
@@ -8065,10 +8218,11 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     tournamentId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -8076,19 +8230,21 @@ export namespace Prisma {
     id?: string
     userId: string
     tournamentId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
   export type ParticipantUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -8096,10 +8252,11 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     tournamentId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -8436,15 +8593,33 @@ export namespace Prisma {
     _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type EnumTournamentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TournamentStatus | EnumTournamentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTournamentStatusFilter<$PrismaModel> | $Enums.TournamentStatus
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type TournamentCountOrderByAggregateInput = {
@@ -8453,13 +8628,19 @@ export namespace Prisma {
     description?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
     status?: SortOrder
+    settledAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TournamentAvgOrderByAggregateInput = {
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
   }
 
   export type TournamentMaxOrderByAggregateInput = {
@@ -8468,9 +8649,13 @@ export namespace Prisma {
     description?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
     status?: SortOrder
+    settledAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TournamentMinOrderByAggregateInput = {
@@ -8479,29 +8664,59 @@ export namespace Prisma {
     description?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
     status?: SortOrder
+    settledAt?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TournamentSumOrderByAggregateInput = {
+    entryFee?: SortOrder
     prizePool?: SortOrder
+    maxParticipants?: SortOrder
   }
 
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
     _count?: NestedIntFilter<$PrismaModel>
     _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type EnumTournamentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TournamentStatus | EnumTournamentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTournamentStatusWithAggregatesFilter<$PrismaModel> | $Enums.TournamentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTournamentStatusFilter<$PrismaModel>
+    _max?: NestedEnumTournamentStatusFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -8533,6 +8748,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrder
+    prizeWon?: SortOrder
     joinedAt?: SortOrder
   }
 
@@ -8541,6 +8757,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrder
+    prizeWon?: SortOrder
   }
 
   export type ParticipantMaxOrderByAggregateInput = {
@@ -8551,6 +8768,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrder
+    prizeWon?: SortOrder
     joinedAt?: SortOrder
   }
 
@@ -8562,6 +8780,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrder
+    prizeWon?: SortOrder
     joinedAt?: SortOrder
   }
 
@@ -8570,6 +8789,7 @@ export namespace Prisma {
     currentBalance?: SortOrder
     pnlPercentage?: SortOrder
     rank?: SortOrder
+    prizeWon?: SortOrder
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -8782,12 +9002,20 @@ export namespace Prisma {
     connect?: ParticipantWhereUniqueInput | ParticipantWhereUniqueInput[]
   }
 
-  export type FloatFieldUpdateOperationsInput = {
+  export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type EnumTournamentStatusFieldUpdateOperationsInput = {
+    set?: $Enums.TournamentStatus
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type ParticipantUpdateManyWithoutTournamentNestedInput = {
@@ -9051,6 +9279,40 @@ export namespace Prisma {
     _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumTournamentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TournamentStatus | EnumTournamentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTournamentStatusFilter<$PrismaModel> | $Enums.TournamentStatus
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
   export type NestedFloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -9062,20 +9324,28 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+  export type NestedEnumTournamentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TournamentStatus | EnumTournamentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TournamentStatus[] | ListEnumTournamentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTournamentStatusWithAggregatesFilter<$PrismaModel> | $Enums.TournamentStatus
     _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedEnumTournamentStatusFilter<$PrismaModel>
+    _max?: NestedEnumTournamentStatusFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9158,10 +9428,11 @@ export namespace Prisma {
 
   export type ParticipantCreateWithoutUserInput = {
     id?: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
     tournament: TournamentCreateNestedOneWithoutParticipantsInput
   }
@@ -9169,10 +9440,11 @@ export namespace Prisma {
   export type ParticipantUncheckedCreateWithoutUserInput = {
     id?: string
     tournamentId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
@@ -9264,10 +9536,11 @@ export namespace Prisma {
     id?: StringFilter<"Participant"> | string
     userId?: StringFilter<"Participant"> | string
     tournamentId?: StringFilter<"Participant"> | string
-    startingBalance?: FloatFilter<"Participant"> | number
-    currentBalance?: FloatFilter<"Participant"> | number
-    pnlPercentage?: FloatFilter<"Participant"> | number
+    startingBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     rank?: IntNullableFilter<"Participant"> | number | null
+    prizeWon?: DecimalFilter<"Participant"> | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFilter<"Participant"> | Date | string
   }
 
@@ -9425,10 +9698,11 @@ export namespace Prisma {
 
   export type ParticipantCreateWithoutTournamentInput = {
     id?: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
     user: UserCreateNestedOneWithoutParticipantsInput
   }
@@ -9436,10 +9710,11 @@ export namespace Prisma {
   export type ParticipantUncheckedCreateWithoutTournamentInput = {
     id?: string
     userId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
@@ -9475,9 +9750,13 @@ export namespace Prisma {
     description?: string | null
     startDate: Date | string
     endDate: Date | string
-    prizePool?: number
-    status?: string
+    entryFee?: Decimal | DecimalJsLike | number | string
+    prizePool?: Decimal | DecimalJsLike | number | string
+    maxParticipants?: number
+    status?: $Enums.TournamentStatus
+    settledAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TournamentUncheckedCreateWithoutParticipantsInput = {
@@ -9486,9 +9765,13 @@ export namespace Prisma {
     description?: string | null
     startDate: Date | string
     endDate: Date | string
-    prizePool?: number
-    status?: string
+    entryFee?: Decimal | DecimalJsLike | number | string
+    prizePool?: Decimal | DecimalJsLike | number | string
+    maxParticipants?: number
+    status?: $Enums.TournamentStatus
+    settledAt?: Date | string | null
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TournamentCreateOrConnectWithoutParticipantsInput = {
@@ -9548,9 +9831,13 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TournamentUncheckedUpdateWithoutParticipantsInput = {
@@ -9559,9 +9846,13 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    prizePool?: FloatFieldUpdateOperationsInput | number
-    status?: StringFieldUpdateOperationsInput | string
+    entryFee?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    prizePool?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
+    status?: EnumTournamentStatusFieldUpdateOperationsInput | $Enums.TournamentStatus
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type UserUpsertWithoutParticipantsInput = {
@@ -9620,10 +9911,11 @@ export namespace Prisma {
   export type ParticipantCreateManyUserInput = {
     id?: string
     tournamentId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
@@ -9665,10 +9957,11 @@ export namespace Prisma {
 
   export type ParticipantUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     tournament?: TournamentUpdateOneRequiredWithoutParticipantsNestedInput
   }
@@ -9676,39 +9969,43 @@ export namespace Prisma {
   export type ParticipantUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     tournamentId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ParticipantUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     tournamentId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ParticipantCreateManyTournamentInput = {
     id?: string
     userId: string
-    startingBalance?: number
-    currentBalance?: number
-    pnlPercentage?: number
+    startingBalance?: Decimal | DecimalJsLike | number | string
+    currentBalance?: Decimal | DecimalJsLike | number | string
+    pnlPercentage?: Decimal | DecimalJsLike | number | string
     rank?: number | null
+    prizeWon?: Decimal | DecimalJsLike | number | string
     joinedAt?: Date | string
   }
 
   export type ParticipantUpdateWithoutTournamentInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutParticipantsNestedInput
   }
@@ -9716,20 +10013,22 @@ export namespace Prisma {
   export type ParticipantUncheckedUpdateWithoutTournamentInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ParticipantUncheckedUpdateManyWithoutTournamentInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    startingBalance?: FloatFieldUpdateOperationsInput | number
-    currentBalance?: FloatFieldUpdateOperationsInput | number
-    pnlPercentage?: FloatFieldUpdateOperationsInput | number
+    startingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pnlPercentage?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     rank?: NullableIntFieldUpdateOperationsInput | number | null
+    prizeWon?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

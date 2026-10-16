@@ -11,6 +11,8 @@ import {
   CalendarDays,
   Users,
   Clock3,
+  Pencil,
+  X,
 } from 'lucide-react';
 
 import { api } from '../services/api';
@@ -25,7 +27,8 @@ type TournamentStatus =
   | 'UPCOMING'
   | 'ACTIVE'
   | 'PAUSED'
-  | 'COMPLETED';
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 interface Tournament {
   id: string;
@@ -35,6 +38,10 @@ interface Tournament {
   endDate: string;
   createdAt: string;
   participantCount: number;
+  description?: string | null;
+  entryFee?: number;
+  prizePool?: number;
+  maxParticipants?: number;
 }
 
 interface TournamentApiResponse {
@@ -73,6 +80,9 @@ const getStatusStyles = (status: TournamentStatus): string => {
     case 'UPCOMING':
       return 'border border-indigo-500/20 bg-indigo-500/15 text-indigo-400';
 
+    case 'CANCELLED':
+      return 'border border-rose-500/20 bg-rose-500/15 text-rose-400';
+
     case 'COMPLETED':
       return 'border border-slate-600/30 bg-slate-700/50 text-slate-300';
 
@@ -99,6 +109,29 @@ const AdminTournaments: React.FC = () => {
   const [title, setTitle] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [edit, setEdit] = useState({ title: '', description: '', startDate: '', endDate: '', entryFee: 0, prizePool: 0, maxParticipants: 100 });
+  const toLocalInput = (iso: string) => { const d = new Date(iso); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const beginEdit = (t: Tournament) => {
+    setEditingId(t.id);
+    setEdit({ title: t.title, description: t.description ?? '', startDate: toLocalInput(t.startDate), endDate: toLocalInput(t.endDate), entryFee: t.entryFee ?? 0, prizePool: t.prizePool ?? 0, maxParticipants: t.maxParticipants ?? 100 });
+  };
+  const saveEdit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingId || updatingTournamentId) return;
+    const start = new Date(edit.startDate), end = new Date(edit.endDate);
+    if (!edit.title.trim() || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start || edit.entryFee < 0 || edit.prizePool < 0 || !Number.isSafeInteger(edit.maxParticipants) || edit.maxParticipants < 1) {
+      notifyError('Check title, dates, fees, prize pool and participant limit.'); return;
+    }
+    setUpdatingTournamentId(editingId);
+    try {
+      await api.patch(`/admin/tournaments/${editingId}`, { ...edit, title: edit.title.trim(), startDate: start.toISOString(), endDate: end.toISOString() });
+      setEditingId(null);
+      await fetchTournaments();
+      notifySuccess('Tournament updated successfully.');
+    } catch (error: unknown) { notifyError(extractErrorMessage(error, 'Could not update tournament.')); }
+    finally { setUpdatingTournamentId(null); }
+  };
 
   const { notifySuccess, notifyError } = useNotification();
 
@@ -164,12 +197,7 @@ const AdminTournaments: React.FC = () => {
       return;
     }
 
-    // If the tournament begins in the future, create it as UPCOMING.
-    // Otherwise it may begin immediately.
-    const initialStatus: TournamentStatus =
-      parsedStartDate.getTime() > Date.now()
-        ? 'UPCOMING'
-        : 'ACTIVE';
+    const initialStatus: TournamentStatus = 'UPCOMING';
 
     setIsSubmitting(true);
 
@@ -185,11 +213,7 @@ const AdminTournaments: React.FC = () => {
           }
         );
 
-      notifySuccess(
-        initialStatus === 'UPCOMING'
-          ? 'Tournament scheduled successfully!'
-          : 'Tournament created and activated successfully!'
-      );
+      notifySuccess('Tournament scheduled successfully!');
 
       setTitle('');
       setStartDate('');
@@ -228,8 +252,8 @@ const AdminTournaments: React.FC = () => {
       return;
     }
 
-    // COMPLETED is treated as terminal in the UI.
-    if (tournament.status === 'COMPLETED') {
+    // Terminal states are locked in the UI.
+    if (tournament.status === 'COMPLETED' || tournament.status === 'CANCELLED') {
       notifyError(
         'Completed tournaments cannot be modified.'
       );
@@ -304,6 +328,21 @@ const AdminTournaments: React.FC = () => {
           'Failed to update tournament status.'
         )
       );
+    } finally {
+      setUpdatingTournamentId(null);
+    }
+  };
+
+  const handleSettle = async (tournament: Tournament): Promise<void> => {
+    if (updatingTournamentId) return;
+    if (!window.confirm(`Settle "${tournament.title}"? This finalizes rankings and awards the configured demo-credit prize. This action cannot be undone.`)) return;
+    setUpdatingTournamentId(tournament.id);
+    try {
+      await api.post(`/admin/tournaments/${tournament.id}/settle`, {});
+      await fetchTournaments();
+      notifySuccess(`"${tournament.title}" settled successfully.`);
+    } catch (error: unknown) {
+      notifyError(extractErrorMessage(error, 'Failed to settle tournament.'));
     } finally {
       setUpdatingTournamentId(null);
     }
@@ -456,12 +495,7 @@ const AdminTournaments: React.FC = () => {
             <span className="font-bold text-indigo-400">
               UPCOMING
             </span>
-            . A tournament whose start time has already arrived
-            will be created as{' '}
-            <span className="font-bold text-emerald-400">
-              ACTIVE
-            </span>
-            .
+            . Activate it when ready.
           </p>
         </div>
 
@@ -528,12 +562,12 @@ const AdminTournaments: React.FC = () => {
                 updatingTournamentId === tournament.id;
 
               const isCompleted =
-                tournament.status === 'COMPLETED';
+                tournament.status === 'COMPLETED' || tournament.status === 'CANCELLED';
 
               return (
                 <div
                   key={tournament.id}
-                  className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-white/5 bg-slate-900/40 p-5 transition-colors hover:border-white/10 md:flex-row md:items-center"
+                  className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-white/5 bg-slate-900/40 p-5 transition-colors hover:border-white/10"
                 >
                   {/* INFORMATION */}
 
@@ -589,9 +623,21 @@ const AdminTournaments: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="w-full text-xs text-slate-400">
+                    {tournament.description && <p className="mb-2 whitespace-pre-wrap text-slate-300">{tournament.description}</p>}
+                    <div className="flex flex-wrap gap-x-5 gap-y-2">
+                      <span>Max participants: <strong className="text-white">{tournament.maxParticipants ?? 100}</strong></span>
+                      <span>Entry fee: <strong className="text-white">{tournament.entryFee ?? 0}</strong> demo credits</span>
+                      <span>Prize pool: <strong className="text-white">{tournament.prizePool ?? 0}</strong> demo credits</span>
+                    </div>
+                  </div>
+
                   {/* ACTIONS */}
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    {tournament.status === 'UPCOMING' && (tournament.participantCount ?? 0) === 0 && (
+                      <button type="button" disabled={updatingTournamentId !== null} onClick={() => beginEdit(tournament)} className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-50"><Pencil size={14} /> Edit</button>
+                    )}
                     {/* UPCOMING / PAUSED -> ACTIVATE */}
 
                     {(tournament.status === 'UPCOMING' ||
@@ -625,6 +671,18 @@ const AdminTournaments: React.FC = () => {
                       </button>
                     )}
 
+                    {(['ACTIVE', 'PAUSED'] as TournamentStatus[]).includes(tournament.status) && new Date(tournament.endDate).getTime() <= Date.now() && (
+                      <button
+                        type="button"
+                        disabled={updatingTournamentId !== null}
+                        onClick={() => void handleSettle(tournament)}
+                        className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+                      >
+                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} />}
+                        Settle Tournament
+                      </button>
+                    )}
+
                     {/* ACTIVE -> PAUSE */}
 
                     {tournament.status === 'ACTIVE' && (
@@ -655,9 +713,9 @@ const AdminTournaments: React.FC = () => {
                       </button>
                     )}
 
-                    {/* COMPLETE */}
+                    {/* Cancel upcoming or paused tournaments */}
 
-                    {!isCompleted && (
+                    {(tournament.status === 'UPCOMING' || tournament.status === 'PAUSED') && (
                       <button
                         type="button"
                         disabled={
@@ -667,7 +725,7 @@ const AdminTournaments: React.FC = () => {
                         onClick={() =>
                           void handleStatusChange(
                             tournament,
-                            'COMPLETED'
+                            'CANCELLED'
                           )
                         }
                         className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -678,10 +736,10 @@ const AdminTournaments: React.FC = () => {
                             className="animate-spin"
                           />
                         ) : (
-                          <CheckCircle size={14} />
+                          <X size={14} />
                         )}
 
-                        Complete
+                        Cancel
                       </button>
                     )}
 
@@ -690,10 +748,21 @@ const AdminTournaments: React.FC = () => {
                     {isCompleted && (
                       <div className="flex items-center gap-1.5 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-1.5 text-xs font-semibold text-slate-500">
                         <CheckCircle size={14} />
-                        Finished
+                        {tournament.status === 'CANCELLED' ? 'Cancelled' : 'Finished'}
                       </div>
                     )}
                   </div>
+                  {editingId === tournament.id && (
+                    <form onSubmit={saveEdit} className="w-full space-y-3 border-t border-white/10 pt-4">
+                      <h4 className="text-sm font-semibold text-indigo-300">Edit tournament</h4>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {([['title', 'Title'], ['description', 'Description']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-400">{label}<input className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white" value={edit[key]} onChange={e => setEdit(v => ({ ...v, [key]: e.target.value }))} /></label>)}
+                        {([['startDate', 'Start'], ['endDate', 'End']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-400">{label}<input type="datetime-local" className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white" value={edit[key]} onChange={e => setEdit(v => ({ ...v, [key]: e.target.value }))} /></label>)}
+                        {([['entryFee', 'Entry fee'], ['prizePool', 'Prize pool'], ['maxParticipants', 'Max participants']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-400">{label}<input type="number" min={key === 'maxParticipants' ? 1 : 0} step={key === 'maxParticipants' ? 1 : 'any'} className="mt-1 w-full rounded-lg bg-slate-950 p-2 text-white" value={edit[key]} onChange={e => setEdit(v => ({ ...v, [key]: Number(e.target.value) }))} /></label>)}
+                      </div>
+                      <div className="flex gap-2"><button type="submit" disabled={updatingTournamentId !== null} className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold disabled:opacity-50">Save changes</button><button type="button" onClick={() => setEditingId(null)} className="rounded-lg bg-slate-700 px-4 py-2 text-xs">Discard</button></div>
+                    </form>
+                  )}
                 </div>
               );
             })}

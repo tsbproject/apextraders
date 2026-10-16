@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { randomBytes, createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma';
 import {
   hashPassword,
@@ -389,5 +390,79 @@ router.get(
     }
   }
 );
+
+
+const resetTokenDigest = (token: string): string =>
+  createHash('sha256').update(token).digest('hex');
+
+const RESET_RESPONSE = 'If an account exists for that email, a password reset link will be sent.';
+
+// A verified sending domain, RESEND_API_KEY and FRONTEND_URL are required.
+// Never return a reset token or link through this API.
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: 'Enter a valid email address.' });
+  }
+  if (!process.env.RESEND_API_KEY || !process.env.RESET_EMAIL_FROM || !process.env.FRONTEND_URL) {
+    return res.status(503).json({ message: 'Password recovery is temporarily unavailable.' });
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (user) {
+      const token = randomBytes(32).toString('hex');
+      const resetUrl = new URL(process.env.FRONTEND_URL);
+      resetUrl.searchParams.set('resetToken', token);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetTokenHash: resetTokenDigest(token), resetTokenExpiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+      });
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: process.env.RESET_EMAIL_FROM,
+          to: [email],
+          subject: 'Reset your ApexTraders password',
+          text: `Use this link to reset your password (expires in 30 minutes): ${resetUrl.toString()}\nIf you did not request this, ignore this email.`,
+        }),
+      });
+      if (!response.ok) {
+        console.error('Password recovery email delivery failed:', response.status);
+        await prisma.user.updateMany({ where: { id: user.id, resetTokenHash: resetTokenDigest(token) }, data: { resetTokenHash: null, resetTokenExpiresAt: null } });
+        return res.status(503).json({ message: 'Password recovery is temporarily unavailable.' });
+      }
+    }
+    return res.json({ message: RESET_RESPONSE });
+  } catch (error) {
+    console.error('Password recovery request failed:', error);
+    return res.status(503).json({ message: 'Password recovery is temporarily unavailable.' });
+  }
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const token = typeof req.body?.token === 'string' ? req.body.token : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  if (!/^[a-f0-9]{64}$/.test(token) || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ message: 'Invalid reset link or password (8–128 characters required).' });
+  }
+  try {
+    const digest = resetTokenDigest(token);
+    const user = await prisma.user.findUnique({ where: { resetTokenHash: digest }, select: { id: true, resetTokenExpiresAt: true } });
+    if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt <= new Date()) {
+      return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+    }
+    const passwordHash = await hashPassword(password);
+    const result = await prisma.user.updateMany({
+      where: { id: user.id, resetTokenHash: digest, resetTokenExpiresAt: { gt: new Date() } },
+      data: { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null },
+    });
+    if (result.count !== 1) return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+    return res.json({ message: 'Password updated. You can now sign in.' });
+  } catch (error) {
+    console.error('Password reset failed:', error);
+    return res.status(500).json({ message: 'Unable to reset password.' });
+  }
+});
 
 export default router;

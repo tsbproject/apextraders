@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { setAuthStart, setAuthSuccess, setAuthFailure } from '../../store/authSlice';
@@ -26,6 +27,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     password: '',
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState<'forgot' | 'reset' | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState('');
+  const resetToken = new URLSearchParams(window.location.search).get('resetToken');
+  const activeRecoveryMode = recoveryMode || (resetToken ? 'reset' : null);
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state: RootState) => state.auth);
   const { notifySuccess, notifyError } = useNotification();
@@ -34,6 +42,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRecoveryLoading(true);
+    setRecoveryMessage('');
+    try {
+      const isReset = activeRecoveryMode === 'reset';
+      const response = await api.post(isReset ? '/auth/reset-password' : '/auth/forgot-password',
+        isReset ? { token: resetToken, password: resetPassword } : { email: formData.email });
+      setRecoveryMessage(response.data.message);
+      if (isReset) {
+        window.history.replaceState({}, '', window.location.pathname);
+        setRecoveryMode(null);
+        setResetPassword('');
+        notifySuccess('Password reset successfully. Please sign in with your new password.');
+      }
+    } catch (error: any) {
+      setRecoveryMessage(error?.response?.data?.message || 'Unable to process the request. Please try again.');
+    } finally {
+      setRecoveryLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,7 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         {/* Header Tabs */}
-        <div className="flex border-b border-slate-800 mb-6">
+        {!activeRecoveryMode && <div className="flex border-b border-slate-800 mb-6">
           <button
             type="button"
             onClick={() => setMode('login')}
@@ -103,10 +133,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             Create Account
           </button>
-        </div>
+        </div>}
+
+        {activeRecoveryMode && <div className="mb-6"><h2 className="text-xl font-bold text-white">{activeRecoveryMode === 'reset' ? 'Choose a new password' : 'Forgot password?'}</h2><p className="mt-2 text-sm text-slate-400">{activeRecoveryMode === 'reset' ? 'Enter a new password to recover your account.' : 'Enter your account email to request a reset link.'}</p></div>}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {activeRecoveryMode ? <form onSubmit={handleRecovery} className="space-y-4">
+          {activeRecoveryMode === 'forgot' ? <input type="email" required autoComplete="email" value={formData.email} onChange={e => setFormData(v => ({ ...v, email: e.target.value }))} placeholder="Your email address" aria-label="Account email" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white" /> :
+          <div className="relative"><input type={showPassword ? 'text' : 'password'} required minLength={8} maxLength={128} autoComplete="new-password" value={resetPassword} onChange={e => setResetPassword(e.target.value)} placeholder="New password (at least 8 characters)" aria-label="New password" className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 pr-12 text-white" /><button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-3 text-slate-400">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>}
+          <button type="submit" disabled={recoveryLoading} className="w-full rounded-lg bg-indigo-600 px-4 py-3 font-bold text-white disabled:opacity-50">{recoveryLoading ? 'Please wait...' : activeRecoveryMode === 'reset' ? 'Reset password' : 'Send reset link'}</button>
+          {recoveryMessage && <p role="status" className="text-sm text-slate-300">{recoveryMessage}</p>}
+          <button type="button" onClick={() => { window.history.replaceState({}, '', window.location.pathname); setRecoveryMode(null); setRecoveryMessage(''); }} className="w-full text-sm text-indigo-300 hover:text-white">Back to sign in</button>
+        </form> : <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
@@ -143,16 +181,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
               Password
             </label>
-            <input
-              type="password"
+            <div className="relative"><input
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               name="password"
               required
               minLength={6}
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-            />
+              className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            /><button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-white">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
           </div>
 
           <button
@@ -168,7 +207,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               'Register & Start Trading'
             )}
           </button>
-        </form>
+        </form>}
+        {!activeRecoveryMode && mode === 'login' && <button type="button" onClick={() => { setRecoveryMode('forgot'); setRecoveryMessage(''); }} className="mt-4 w-full text-center text-sm text-indigo-300 hover:text-white">Forgot password?</button>}
       </div>
     </div>
   );

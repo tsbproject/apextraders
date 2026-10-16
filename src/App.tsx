@@ -44,12 +44,20 @@ const getActiveTabFromPath = (pathname: string): NavigationTab => {
 const AppContent: React.FC = () => {
   // Auth modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>('login');
 
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
   const { notifySuccess } = useNotification();
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('resetToken')) {
+      setAuthModalMode('login');
+      setIsAuthModalOpen(true);
+    }
+  }, []);
 
   // Re-hydrate session from localStorage JWT
   useAuthInit();
@@ -142,21 +150,23 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-brand-dark text-slate-200 font-sans">
+    <div className="flex min-h-screen h-screen bg-[#080e1c] text-slate-200 font-sans">
       {/* Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={handleTabChange}
         onOpenAuth={handleOpenAuth}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
       />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-col flex-1 overflow-hidden">
         {/* Top Header with Live Ticker & Auth Controls */}
-        <Header onOpenAuth={handleOpenAuth} />
+        <Header onOpenAuth={handleOpenAuth} onToggleMobileSidebar={() => setIsMobileSidebarOpen(v => !v)} isMobileSidebarOpen={isMobileSidebarOpen} />
 
         {/* Main Viewport */}
-        <main className="flex-1 overflow-y-auto p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 to-brand-dark">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 lg:px-8 bg-[radial-gradient(ellipse_at_top,_#15233a_0%,_#080e1c_68%)]">
+          <div className="max-w-[1600px] mx-auto">
             {/* Tab Rendering with Guest Prompt fallback */}
             {activeTab === 'trade' && <Dashboard />}
 
@@ -190,6 +200,13 @@ const AppContent: React.FC = () => {
             {activeTab === 'admin-tournaments' &&
               (isAdmin ? <AdminTournaments /> : <AccessDeniedNotice />)}
           </div>
+          <footer className="mx-auto mt-12 max-w-[1600px] border-t border-white/10 pt-6 text-xs text-slate-500">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="font-bold tracking-[0.18em] text-slate-300">APEX<span className="text-indigo-400">TRADERS</span></p><p className="mt-1">Tournament trading workspace · Demo trading involves simulated funds.</p></div>
+              <div className="flex flex-wrap gap-x-5 gap-y-2"><button type="button" onClick={() => handleTabChange('trade')} className="hover:text-white">Trading</button><button type="button" onClick={() => handleTabChange('leaderboard')} className="hover:text-white">Leaderboard</button><button type="button" onClick={() => handleTabChange('settings')} className="hover:text-white">Settings</button></div>
+            </div>
+            <p className="mt-5 border-t border-white/5 pt-4">© {new Date().getFullYear()} ApexTraders · Market data: Quidax · Prices and execution may differ. No real-money orders are placed through demo trading.</p>
+          </footer>
         </main>
       </div>
 

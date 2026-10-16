@@ -15,10 +15,6 @@ export interface Ranker {
   rankTier: string;
 }
 
-export interface JoinTournamentPayload {
-  userId: string;
-  tournamentId: string;
-}
 
 export interface JoinTournamentResponse {
   message: string;
@@ -29,6 +25,16 @@ const Leaderboard: React.FC = () => {
   const [rankers, setRankers] = useState<Ranker[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isJoining, setIsJoining] = useState<boolean>(false);
+  const [activeTournaments, setActiveTournaments] = useState<{ id: string; title: string; startDate: string; endDate: string }[]>([]);
+  const [selectedTournamentId, setSelectedTournamentId] = useState('');
+  useEffect(() => {
+    void api.get<{ id: string; title: string; startDate: string; endDate: string }[]>('/tournaments').then(({ data }) => {
+      const now = Date.now();
+      const open = data.filter(t => new Date(t.startDate).getTime() <= now && now < new Date(t.endDate).getTime());
+      setActiveTournaments(open);
+      setSelectedTournamentId(previous => open.some(t => t.id === previous) ? previous : (open[0]?.id ?? ''));
+    }).catch(() => { setActiveTournaments([]); setSelectedTournamentId(''); });
+  }, []);
 
   // State for Trader Inspection Modal
   const [selectedTrader, setSelectedTrader] = useState<Ranker | null>(null);
@@ -79,10 +85,8 @@ const Leaderboard: React.FC = () => {
   const handleJoinTournament = async (): Promise<void> => {
   setIsJoining(true);
   try {
-    const payload: JoinTournamentPayload = {
-      userId: 'user_1',
-      tournamentId: 'weekly-apex-challenge',
-    };
+    if (!selectedTournamentId) { notifyError('Select an open tournament first.'); return; }
+    const payload = { tournamentId: selectedTournamentId };
 
     // ✅ Use relative route string so your custom api instance formats it correctly:
     const response = await api.post<JoinTournamentResponse>('/tournaments/join', payload);
@@ -114,27 +118,32 @@ const Leaderboard: React.FC = () => {
       {/* ========================================================= */}
       {/* 1. INTERACTIVE TOURNAMENT HERO HEADER                     */}
       {/* ========================================================= */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-indigo-500/20 bg-slate-900/50 p-6 sm:p-8 backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#121f34] via-[#101b2d] to-[#0b1324] p-6 sm:p-8 shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <div className="rounded-xl bg-indigo-500/10 p-2 sm:p-2.5">
                 <Trophy className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-400" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-white">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                 Global Leaderboard
               </h2>
             </div>
             <p className="text-xs sm:text-sm font-medium text-slate-400 pl-1">
-              Top traders by PnL performance across the Apex ecosystem.
+              Explore demo trading rankings, inspect trader activity, and join an open tournament.
             </p>
           </div>
 
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+          <select aria-label="Select active tournament" value={selectedTournamentId} onChange={e => setSelectedTournamentId(e.target.value)} className="rounded-xl bg-[#080e1c] border border-white/10 px-3 py-3 text-sm text-white outline-none focus:border-indigo-400/60" disabled={isJoining || activeTournaments.length === 0}>
+            {activeTournaments.length === 0 && <option value="">No tournaments currently open</option>}
+            {activeTournaments.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+          </select>
           <button
             type="button"
             onClick={handleJoinTournament}
-            disabled={isJoining}
-            className="w-full md:w-auto flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-indigo-600 px-6 py-3.5 sm:py-4 text-xs sm:text-sm font-black uppercase tracking-wider text-white transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+            disabled={isJoining || !selectedTournamentId}
+            className="w-full md:w-auto flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-xs sm:text-sm font-bold text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isJoining ? (
               <>
@@ -145,9 +154,25 @@ const Leaderboard: React.FC = () => {
               <span>Join Active Tournament</span>
             )}
           </button>
+          </div>
         </div>
         <div className="absolute top-0 right-0 -mt-32 -mr-32 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none" />
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div>
+          <h3 className="text-sm font-bold text-white">Trader rankings</h3>
+          <p className="mt-1 text-xs text-slate-500">Global leaderboard · {rankers.length} ranked traders</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Demo competition</span>
+      </div>
+      {rankers.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-[#111b2c] px-6 py-14 text-center">
+          <Trophy size={28} className="mx-auto text-slate-500" />
+          <h3 className="mt-3 text-sm font-semibold text-white">No rankings available yet</h3>
+          <p className="mt-2 text-xs text-slate-400">Trader rankings will appear here once leaderboard data is available.</p>
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* 2. PODIUM SECTION (TOP 3 RANKERS)                         */}
@@ -167,7 +192,7 @@ const Leaderboard: React.FC = () => {
               className={`group relative cursor-pointer overflow-hidden rounded-2xl sm:rounded-3xl border p-5 sm:p-6 backdrop-blur-xl transition-all hover:border-indigo-500/40 ${
                 isTopRank
                   ? 'border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 via-slate-900/60 to-slate-950 shadow-[0_0_40px_-15px_rgba(99,102,241,0.4)]'
-                  : 'border-white/5 bg-slate-900/40 hover:bg-slate-800/60'
+                  : 'border-white/10 bg-[#111b2c] hover:bg-[#17253b]'
               }`}
             >
               <div className="flex items-center gap-3.5 sm:gap-4">
@@ -242,7 +267,7 @@ const Leaderboard: React.FC = () => {
       {/* ========================================================= */}
       
       {/* Desktop Table (Visible md:block) */}
-      <div className="hidden md:block overflow-hidden rounded-3xl border border-white/5 bg-slate-900/30">
+      <div className="hidden md:block overflow-hidden rounded-3xl border border-white/10 bg-[#111b2c]">
         <table className="w-full text-left border-collapse">
           <thead className="bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
             <tr>
@@ -328,7 +353,7 @@ const Leaderboard: React.FC = () => {
             <div
               key={user.id}
               onClick={() => handleTraderClick(user)}
-              className="flex items-center justify-between rounded-xl border border-white/5 bg-slate-900/40 p-3.5 transition-colors active:bg-slate-800/60"
+              className="flex items-center justify-between rounded-xl border border-white/10 bg-[#111b2c] p-3.5 transition-colors active:bg-slate-800/60"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <span className="font-mono text-xs font-bold text-slate-500 w-7">

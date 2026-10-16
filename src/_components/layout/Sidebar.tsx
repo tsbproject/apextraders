@@ -10,7 +10,10 @@ import {
   Settings, 
   X, 
   UserCheck, 
-  ShieldCheck 
+  ShieldCheck,
+  Activity,
+  ChevronRight,
+  Radio,
 } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 import { NavigationTab, AuthModalMode } from '../../App';
@@ -84,18 +87,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         key={item.id}
         type="button"
         onClick={() => handleTabClick(item.id)}
-        className={`w-full flex items-center gap-3 px-4 ${isMobileDrawer ? 'py-3.5' : 'py-3'} rounded-xl font-bold transition-all cursor-pointer ${
+        className={`group w-full flex items-center gap-3 px-4 ${isMobileDrawer ? 'py-3.5' : 'py-3'} rounded-xl font-semibold transition-all cursor-pointer ${
           isActive
             ? isAdminItem
               ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-              : 'bg-indigo-500/10 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-500/20'
+              : 'bg-indigo-500/15 text-indigo-200 shadow-[inset_3px_0_0_#818cf8] border border-indigo-400/20'
             : isAdminItem
             ? 'text-amber-500/70 hover:bg-amber-500/5 hover:text-amber-300'
             : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
         }`}
       >
         <Icon size={20} />
-        <span className="text-xs uppercase tracking-wider">{item.label}</span>
+        <span className="flex-1 text-left text-xs uppercase tracking-wider">{item.label}</span><ChevronRight size={14} className={`transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-70'}`} />
       </button>
     );
   };
@@ -105,16 +108,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* ========================================================= */}
       {/* 1. DESKTOP SIDEBAR (Visible md:flex)                        */}
       {/* ========================================================= */}
-      <aside className="hidden md:flex w-64 min-h-screen border-r border-white/5 bg-slate-950 flex-col p-6 select-none shrink-0">
+      <aside className="hidden md:flex w-[252px] lg:w-[276px] h-screen overflow-y-auto border-r border-white/10 bg-[#0b1324] flex-col px-4 py-6 select-none shrink-0">
         {/* Brand Header */}
-        <div className="mb-10 px-2">
+        <div className="mb-9 px-3">
           <h1 className="text-xl font-black tracking-tighter italic text-white">
             APEX<span className="text-indigo-500">TRADERS</span>
           </h1>
         </div>
 
+        <div className="mb-7 rounded-2xl border border-indigo-400/15 bg-gradient-to-br from-indigo-500/15 to-cyan-500/5 p-4">
+          <div className="mb-3 flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-300">Trading terminal</span><Activity size={15} className="text-indigo-300" /></div>
+          <p className="text-sm font-semibold text-white">Your market workspace</p><p className="mt-1 text-xs leading-relaxed text-slate-400">Quidax-powered charts and tournament demo trading.</p>
+        </div>
+        <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Workspace</p>
         {/* Main Navigation */}
-        <nav className="space-y-2 flex-1">
+        <nav className="space-y-1.5 flex-1">
           {mainMenuItems.map((item) => renderNavButton(item))}
 
           {/* Admin Navigation Section */}
@@ -129,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Settings Footer Section */}
-        <div className="mt-auto pt-6 border-t border-white/5">
+        <div className="mt-auto pt-5 border-t border-white/10">
           <button
             type="button"
             onClick={() => handleTabClick('settings')}
@@ -142,6 +150,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Settings size={20} />
             <span className="text-xs uppercase tracking-wider">Settings</span>
           </button>
+          <div className="mt-5 flex items-center gap-2 rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-3 py-3"><Radio size={15} className="text-emerald-400"/><div><p className="text-[11px] font-semibold text-slate-200">Quidax market data</p><p className="text-[10px] text-slate-500">Live status shown in header</p></div></div>
+          <p className="mt-5 px-2 text-[10px] tracking-wide text-slate-600">APEXTRADERS · TRADING WORKSPACE</p>
         </div>
       </aside>
 
