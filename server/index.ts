@@ -25,6 +25,14 @@ import { socketService } from './services/socketServices';
 dotenv.config();
 
 const app = express();
+// Trust only the configured number of Northflank ingress proxy hops.
+// Default to zero (direct connections); set TRUST_PROXY_HOPS=1 in staging
+// only after confirming the request traverses exactly one trusted proxy.
+const trustedProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? '0');
+if (!Number.isSafeInteger(trustedProxyHops) || trustedProxyHops < 0 || trustedProxyHops > 3) {
+  throw new Error('TRUST_PROXY_HOPS must be an integer between 0 and 3.');
+}
+app.set('trust proxy', trustedProxyHops);
 const PORT = Number(process.env.PORT) || 3001;
 
 // ==========================================
