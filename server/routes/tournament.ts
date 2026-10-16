@@ -10,7 +10,7 @@ const router = Router();
  * Serializable isolation ensures capacity and wallet deductions are consistent
  * when multiple traders enroll simultaneously.
  */
-router.post('/join', authenticateToken as RequestHandler, async (req: AuthenticatedRequest, res): Promise<void> => {
+router.post('/join', authenticateToken as RequestHandler, async (req: AuthenticatedRequest<Record<string, string>, unknown, { tournamentId?: unknown }>, res): Promise<void> => {
   const userId = req.user?.id;
   const tournamentId: unknown = req.body?.tournamentId;
   if (!userId) { res.status(401).json({ message: 'Authentication required.' }); return; }
