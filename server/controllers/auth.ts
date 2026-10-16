@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { comparePassword, generateToken } from '../utils/jwt'; // Adjust import path to match your structure
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
+import { comparePassword, generateToken } from '../lib/auth';
+import { AuthenticatedRequest } from '../middleware/authmiddleware';
 
 /**
  * Handles user login and returns JWT token + user profile
@@ -16,7 +15,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // 1. Fetch user from database
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email }, include: { wallet: true } });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -44,7 +43,7 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         rankTier: user.rankTier || 'ELITE',
-        demoBalance: Number(user.demoBalance ?? 100000),
+        demoBalance: Number(user.wallet?.balance ?? 100000),
       },
     });
   } catch (error) {
@@ -56,9 +55,9 @@ export const login = async (req: Request, res: Response) => {
 /**
  * Re-hydrates authenticated user session (/auth/me)
  */
-export const getMe = async (req: Request, res: Response) => {
+export const getMe = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized session.' });
@@ -72,7 +71,7 @@ export const getMe = async (req: Request, res: Response) => {
         email: true,
         role: true,
         rankTier: true,
-        demoBalance: true,
+        wallet: { select: { balance: true } },
       },
     });
 
@@ -80,10 +79,11 @@ export const getMe = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User profile not found.' });
     }
 
+    const { wallet, ...profile } = user;
     return res.status(200).json({
       user: {
-        ...user,
-        demoBalance: Number(user.demoBalance ?? 100000),
+        ...profile,
+        demoBalance: Number(wallet?.balance ?? 100000),
       },
     });
   } catch (error) {

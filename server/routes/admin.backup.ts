@@ -360,6 +360,7 @@ router.patch(
         ],
 
         [TournamentStatus.COMPLETED]: [],
+        [TournamentStatus.CANCELLED]: [],
       };
 
       if (!allowedTransitions[currentStatus].includes(status)) {

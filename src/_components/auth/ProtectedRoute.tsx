@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // 3. Role-Based Access Control (RBAC) check
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.some((role) => role === user.role)) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-slate-950 p-6 text-center">
         <div className="max-w-md rounded-2xl border border-rose-500/20 bg-rose-950/20 p-8 text-rose-200">

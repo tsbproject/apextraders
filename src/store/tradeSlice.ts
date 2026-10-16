@@ -16,6 +16,7 @@ export interface Trade {
   allocatedCapital?: number | null;
   exitPrice?: number;
   pnlPercentage?: number;
+  realizedPnl?: number | string | null;
   status: TradeStatus;
   createdAt?: string;
   closedAt?: string;

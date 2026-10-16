@@ -37,13 +37,14 @@ router.get('/candles/btcusdt', async (req: Request, res: Response): Promise<Resp
       if (!row || typeof row !== 'object') return null;
       // Quidax k-line arrays: [timestamp_ms, open, close, high, low, volume].
       // Preserve support for object-form candles if the upstream shape changes.
+      const values: unknown[] = Array.isArray(row) ? row : [];
       const item = Array.isArray(row) ? null : row as Record<string, unknown>;
-      const time = Number(item ? (item.time ?? item.timestamp ?? item.at) : row[0]);
-      const open = Number(item ? item.open : row[1]);
-      const close = Number(item ? item.close : row[2]);
-      const high = Number(item ? item.high : row[3]);
-      const low = Number(item ? item.low : row[4]);
-      const volume = Number(item ? (item.volume ?? item.vol) : row[5]);
+      const time = Number(item ? (item.time ?? item.timestamp ?? item.at) : values[0]);
+      const open = Number(item ? item.open : values[1]);
+      const close = Number(item ? item.close : values[2]);
+      const high = Number(item ? item.high : values[3]);
+      const low = Number(item ? item.low : values[4]);
+      const volume = Number(item ? (item.volume ?? item.vol) : values[5]);
       const timestamp = time < 1e11 ? time * 1000 : time;
       if (![timestamp, open, high, low, close, volume].every(Number.isFinite) ||
           open <= 0 || close <= 0 || high < Math.max(open, close) ||

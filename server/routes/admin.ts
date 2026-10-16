@@ -691,7 +691,7 @@ router.post(
             if (tournament.settledAt || tournament.status === TournamentStatus.COMPLETED) {
               throw new SettlementError(409, 'Tournament has already been settled.');
             }
-            if (![TournamentStatus.ACTIVE, TournamentStatus.PAUSED].includes(tournament.status)) {
+            if (tournament.status !== TournamentStatus.ACTIVE && tournament.status !== TournamentStatus.PAUSED) {
               throw new SettlementError(409, 'Only active or paused tournaments can be settled.');
             }
             if (new Date() < tournament.endDate) {
