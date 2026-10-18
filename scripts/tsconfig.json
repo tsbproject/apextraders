@@ -4,5 +4,5 @@
     "composite": false,
     "noEmit": true
   },
-  "include": ["./**/*.ts", "../server/lib/password.ts", "../tests/superadmin-recovery.test.ts"]
+  "include": ["./**/*.ts", "../server/lib/password.ts", "../tests/superadmin-recovery.test.ts", "../tests/windows-recovery.test.ts"]
 }

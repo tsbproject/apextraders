@@ -2,6 +2,7 @@ import { emitKeypressEvents } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { isAbsolute, dirname } from 'node:path';
 import { lstat } from 'node:fs/promises';
+import { prepareWindowsDirectory, writeWindowsBackup, readWindowsBackup } from './lib/windows-backup';
 import pg from 'pg';
 import { RecoveryError, recover, rollback, verify, encryptBackup, decryptBackup,
   readBackup, writeBackup, validatePassword, validatePassphrase } from './lib/superadmin-recovery';
@@ -56,7 +57,17 @@ async function main(): Promise<void> {
     apply: { type: 'boolean' }, 'allow-remote': { type: 'boolean' }, help: { type: 'boolean' },
   }, allowPositionals: true, strict: true });
   if (values.help) {
-    console.log('Usage: node --import tsx scripts/recover-superadmin.ts <recover|verify|rollback> --account-id <exact-id> [--backup /absolute/private/file] [--apply] [--allow-remote]');
+    console.log('Usage: node --import tsx scripts/recover-superadmin.ts <recover|verify|rollback> --account-id <exact-id> [--backup /absolute/private/file] [--apply] [--allow-remote]; self-test takes no flags and never connects.');
+    return;
+  }
+  if (positionals.length === 1 && positionals[0] === 'self-test') {
+    if (Object.keys(values).length || Object.keys(process.env).some(name => /^(NODE_|PG|DATABASE_URL$|DOTENV_)/i.test(name))) {
+      throw new RecoveryError('Self-test requires the clean launcher environment and no flags.');
+    }
+    const first = await prompt('Temporary TEST phrase (hidden; never use real credentials): ', true);
+    const second = await prompt('Repeat temporary TEST phrase (hidden): ', true);
+    if (!first || first !== second) throw new RecoveryError('Test phrases did not match. No database connection was opened.');
+    console.log('PASS: hidden input matched and environment isolation passed. No database connection was opened. Confirm visually that no input was echoed.');
     return;
   }
   const action = positionals[0];
@@ -71,9 +82,14 @@ async function main(): Promise<void> {
   if (action === 'verify' && (values.apply || values.backup)) throw new RecoveryError('Verify is read-only; omit --apply and --backup.');
   if (!process.stdin.isTTY || !process.stdout.isTTY || !process.stderr.isTTY) throw new RecoveryError('An unredirected interactive terminal is required.');
   if (values.backup) {
+    if (process.platform === 'win32') {
+      if (action === 'recover') await prepareWindowsDirectory(dirname(values.backup));
+      else await readWindowsBackup(values.backup);
+    } else {
     const directory = await lstat(dirname(values.backup));
     if (!directory.isDirectory() || directory.isSymbolicLink() || directory.uid !== process.getuid?.() || (directory.mode & 0o077) !== 0) {
       throw new RecoveryError('The backup directory must already exist, be operator-owned, and have mode 0700.');
+    }
     }
   }
   let connectionString = await prompt('Target PostgreSQL URL (hidden): ', true);
@@ -81,6 +97,7 @@ async function main(): Promise<void> {
   if (!['postgres:', 'postgresql:'].includes(target.protocol) || !target.hostname || target.pathname.length <= 1) {
     throw new RecoveryError('A PostgreSQL URL with an explicit database is required.');
   }
+  if (!target.username || !target.password) throw new RecoveryError('Supply explicit database authentication in the hidden URL; ambient credentials are not used.');
   // libpq-style query parameters can override routing fields in a URL. Refuse
   // them so the connection cannot differ from the displayed/confirmed target.
   for (const name of target.searchParams.keys()) {
@@ -117,7 +134,9 @@ async function main(): Promise<void> {
       if (await prompt('Confirm backup passphrase (hidden): ', true) !== passphrase) throw new RecoveryError('Backup passphrases did not match.');
     }
   }
-  const backup = action === 'rollback' ? decryptBackup(await readBackup(values.backup!), passphrase) : undefined;
+  const loadBackup = process.platform === 'win32' ? readWindowsBackup : readBackup;
+  const saveBackup = process.platform === 'win32' ? writeWindowsBackup : writeBackup;
+  const backup = action === 'rollback' ? decryptBackup(await loadBackup(values.backup!), passphrase) : undefined;
   const client = new pg.Client({ connectionString, connectionTimeoutMillis: 10000,
     application_name: 'apextraders-one-time-superadmin-recovery' });
   connectionString = '';
@@ -129,7 +148,15 @@ async function main(): Promise<void> {
     if (actual.rows[0]?.database !== database) throw new RecoveryError('Connected database does not match the confirmed target.');
     if (action === 'recover') {
       await recover(client, accountId, password, identity,
-        async (data) => writeBackup(values.backup!, encryptBackup(data, passphrase)));
+        async (data) => {
+          await saveBackup(values.backup!, encryptBackup(data, passphrase));
+          const check = decryptBackup(await loadBackup(values.backup!), passphrase);
+          if (check.accountId !== data.accountId || check.previousHash !== data.previousHash ||
+              check.replacementDigest !== data.replacementDigest || check.databaseIdentity !== data.databaseIdentity) {
+            throw new RecoveryError('Encrypted backup verification failed.');
+          }
+        });
+      if (!await verify(client, accountId, password)) throw new RecoveryError('Recovery committed but verification failed; do not retry automatically.');
       console.log('Committed: exactly one SUPER_ADMIN passwordHash updated. Encrypted rollback backup saved.');
     } else if (action === 'rollback') {
       await rollback(client, accountId, identity, backup!);

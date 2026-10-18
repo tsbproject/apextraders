@@ -133,6 +133,9 @@ export async function recover(client: Client, accountId: string, password: strin
       'UPDATE public.users SET "passwordHash" = $1 WHERE id = $2 AND role = $3 AND "passwordHash" = $4 RETURNING id',
       [replacement, accountId, 'SUPER_ADMIN', user.passwordHash]);
     if (updated.rowCount !== 1 || updated.rows[0]?.id !== accountId) throw new RecoveryError('Update count was not exactly one.');
+    const stored = await client.query<{ passwordHash: string }>('SELECT "passwordHash" FROM public.users WHERE id = $1', [accountId]);
+    if (stored.rowCount !== 1 || stored.rows[0].passwordHash !== replacement ||
+        !await comparePassword(password, stored.rows[0].passwordHash)) throw new RecoveryError('Stored password verification failed; transaction rolled back.');
   });
 }
 

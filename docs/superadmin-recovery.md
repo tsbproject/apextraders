@@ -1,5 +1,9 @@
 # One-time SUPER_ADMIN recovery (preparation only)
 
+For the separately prepared native Windows launcher and current validation
+limits, see [Windows instructions](windows-superadmin-recovery.md). The POSIX
+commands and filesystem requirements below describe the original Linux path.
+
 Prepared from production revision
 `fa72f012040b3e5f7fabaa35c5b04f21c33460f6` on
 `fix/secure-superadmin-recovery`. No live recovery is authorized by this work.

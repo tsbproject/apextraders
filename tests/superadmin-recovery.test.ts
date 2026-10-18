@@ -121,6 +121,16 @@ test('isolated PostgreSQL recovery transactions', { skip: !connectionString }, a
     assert.equal(called, false);
   });
 
+  await t.test('database-side hash rewriting is detected and rolled back', async () => {
+    const user = await account();
+    await client.query(`CREATE FUNCTION corrupt_hash() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW."passwordHash" := 'invalid-test-value'; RETURN NEW; END $$;
+      CREATE TRIGGER corrupt_hash BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION corrupt_hash();`);
+    try {
+      await assert.rejects(recover(client, user.id, secret(), 'local-test', async () => {}));
+      assert.equal((await hashes()).find(row => row.id === user.id)?.passwordHash === user.hash, true);
+    } finally { await client.query('DROP TRIGGER corrupt_hash ON users; DROP FUNCTION corrupt_hash()'); }
+  });
+
   await t.test('rollback refuses wrong target, subsequent password changes, and demotion', async () => {
     const user = await account(); let backup: Backup | undefined;
     await recover(client, user.id, secret(), 'local-test', async (b) => { backup = b; });
