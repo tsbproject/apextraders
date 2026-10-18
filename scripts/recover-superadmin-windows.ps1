@@ -17,7 +17,8 @@ if ($Action -eq 'rollback' -and -not $BackupFile) { throw 'Rollback requires the
 if ($Action -eq 'recover' -and -not $BackupFile) {
     $BackupFile = Join-Path $env:LOCALAPPDATA ('ApexTraders-Recovery-' + [Guid]::NewGuid().ToString() + '\rollback.enc')
 }
-$node = (Get-Command node.exe -CommandType Application).Source
+. (Join-Path $PSScriptRoot 'lib\resolve-windows-node.ps1')
+[string]$node = Resolve-ApexNodeExecutable
 $saved = @{}
 # Remove PostgreSQL defaults, dotenv-related ambient configuration, Node loaders,
 # debugging, and TLS overrides BEFORE Node starts. Restore this shell afterward.
