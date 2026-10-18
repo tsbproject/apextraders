@@ -64,12 +64,17 @@ test('multiple Node installations resolve to exactly the first executable, inclu
   await execute(powershell, ['-NoProfile', '-NonInteractive', '-Command', `
     $ErrorActionPreference='Stop'
     . $env:APEX_RESOLVER_FILE
+    # Get-Item may expand an 8.3 TEMP path (for example MARVEL~1) to its
+    # long spelling. Compare the selected file's FullName, not the input spelling.
+    $expectedFirst=(Get-Item -LiteralPath $env:APEX_FIRST_NODE -Force -ErrorAction Stop).FullName
+    $expectedSecond=(Get-Item -LiteralPath $env:APEX_SECOND_NODE -Force -ErrorAction Stop).FullName
     $script:candidates=@([pscustomobject]@{Source=$env:APEX_FIRST_NODE},[pscustomobject]@{Source=$env:APEX_SECOND_NODE})
     function Get-Command { param($Name,$CommandType,[switch]$All,$ErrorAction) $script:candidates }
     $selected=@(Resolve-ApexNodeExecutable)
-    if($selected.Count -ne 1 -or $selected[0] -isnot [string] -or $selected[0] -ne $env:APEX_FIRST_NODE){throw 'Multiple-installation regression'}
+    if($selected.Count -ne 1 -or $selected[0] -isnot [string] -or $selected[0] -ne $expectedFirst){throw 'Multiple-installation regression'}
     $script:candidates=@([pscustomobject]@{Source=$env:APEX_SECOND_NODE},[pscustomobject]@{Source=$env:APEX_FIRST_NODE})
-    if((Resolve-ApexNodeExecutable) -ne $env:APEX_SECOND_NODE){throw 'Search order regression'}
+    $selected=@(Resolve-ApexNodeExecutable)
+    if($selected.Count -ne 1 -or $selected[0] -isnot [string] -or $selected[0] -ne $expectedSecond){throw 'Search order regression'}
     $script:candidates=@([pscustomobject]@{Source=@($env:APEX_FIRST_NODE,$env:APEX_SECOND_NODE)})
     $refused=$false
     try { Resolve-ApexNodeExecutable | Out-Null } catch { $refused=$true }
